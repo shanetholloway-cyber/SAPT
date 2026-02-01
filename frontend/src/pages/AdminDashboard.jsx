@@ -6,11 +6,11 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -26,7 +26,11 @@ import {
   DollarSign,
   Image,
   Save,
-  Loader2
+  Loader2,
+  Plus,
+  Trash2,
+  Palette,
+  Settings
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -41,6 +45,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientDialog, setShowClientDialog] = useState(false);
+  const [newGalleryImage, setNewGalleryImage] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,7 +66,6 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -69,7 +73,6 @@ const AdminDashboard = () => {
     try {
       await axios.put(`${API}/admin/transactions/${transactionId}/confirm`);
       toast.success("Transaction confirmed and credits added");
-      
       const [transactionsRes, clientsRes] = await Promise.all([
         axios.get(`${API}/admin/transactions`),
         axios.get(`${API}/admin/clients`),
@@ -85,7 +88,6 @@ const AdminDashboard = () => {
     try {
       await axios.delete(`${API}/admin/bookings/${bookingId}`);
       toast.success("Booking cancelled");
-      
       const response = await axios.get(`${API}/admin/bookings`);
       setBookings(response.data);
     } catch (error) {
@@ -97,7 +99,7 @@ const AdminDashboard = () => {
     setSavingSettings(true);
     try {
       await axios.put(`${API}/admin/settings`, settings);
-      toast.success("Site images updated! Changes will appear on the homepage.");
+      toast.success("Settings saved! Refresh the page to see changes.");
     } catch (error) {
       toast.error("Failed to save settings");
     } finally {
@@ -107,6 +109,43 @@ const AdminDashboard = () => {
 
   const updateSetting = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateSessionTime = (slot, field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      session_times: {
+        ...prev.session_times,
+        [slot]: {
+          ...prev.session_times[slot],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const updateThemeColor = (key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      theme: {
+        ...prev.theme,
+        [key]: value
+      }
+    }));
+  };
+
+  const addGalleryImage = () => {
+    if (!newGalleryImage.trim()) return;
+    const currentImages = settings.gallery_images || [];
+    updateSetting("gallery_images", [...currentImages, newGalleryImage.trim()]);
+    setNewGalleryImage("");
+    toast.success("Image added to gallery");
+  };
+
+  const removeGalleryImage = (index) => {
+    const currentImages = settings.gallery_images || [];
+    updateSetting("gallery_images", currentImages.filter((_, i) => i !== index));
+    toast.success("Image removed from gallery");
   };
 
   const filteredClients = clients.filter(client =>
@@ -142,13 +181,13 @@ const AdminDashboard = () => {
             Admin Dashboard
           </h1>
           <p className="text-[#737373] mt-2">
-            Manage bookings, clients, payments, and site content
+            Manage bookings, clients, payments, and customize your site
           </p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {stats.map((stat) => (
-            <div key={stat.label} className="card-base" data-testid={`stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
+            <div key={stat.label} className="card-base">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="w-5 h-5 text-[#1A1A1A]" />
@@ -163,16 +202,16 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="bg-[#F5F5F5] p-1 rounded-xl">
-            <TabsTrigger value="bookings" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-bookings">
+          <TabsList className="bg-[#F5F5F5] p-1 rounded-xl flex-wrap">
+            <TabsTrigger value="bookings" className="rounded-lg data-[state=active]:bg-white">
               <Calendar className="w-4 h-4 mr-2" />
               Bookings
             </TabsTrigger>
-            <TabsTrigger value="clients" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-clients">
+            <TabsTrigger value="clients" className="rounded-lg data-[state=active]:bg-white">
               <Users className="w-4 h-4 mr-2" />
               Clients
             </TabsTrigger>
-            <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-payments">
+            <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-white">
               <CreditCard className="w-4 h-4 mr-2" />
               Payments
               {pendingTransactions.length > 0 && (
@@ -181,9 +220,17 @@ const AdminDashboard = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="images" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-images">
+            <TabsTrigger value="images" className="rounded-lg data-[state=active]:bg-white" data-testid="tab-images">
               <Image className="w-4 h-4 mr-2" />
-              Site Images
+              Images
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="rounded-lg data-[state=active]:bg-white" data-testid="tab-sessions">
+              <Clock className="w-4 h-4 mr-2" />
+              Session Times
+            </TabsTrigger>
+            <TabsTrigger value="theme" className="rounded-lg data-[state=active]:bg-white" data-testid="tab-theme">
+              <Palette className="w-4 h-4 mr-2" />
+              Theme
             </TabsTrigger>
           </TabsList>
 
@@ -192,26 +239,15 @@ const AdminDashboard = () => {
             <div className="card-base overflow-x-auto">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Client</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Date</th><th>Time</th><th>Client</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {bookings.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center py-8 text-[#737373]">
-                        No bookings found
-                      </td>
-                    </tr>
+                    <tr><td colSpan={4} className="text-center py-8 text-[#737373]">No bookings found</td></tr>
                   ) : (
                     bookings.map((booking) => (
-                      <tr key={booking.booking_id} data-testid={`admin-booking-${booking.booking_id}`}>
-                        <td className="font-medium">
-                          {format(parseISO(booking.date), "MMM d, yyyy")}
-                        </td>
+                      <tr key={booking.booking_id}>
+                        <td className="font-medium">{format(parseISO(booking.date), "MMM d, yyyy")}</td>
                         <td>{booking.time_display}</td>
                         <td>
                           <div className="flex items-center gap-2">
@@ -222,12 +258,7 @@ const AdminDashboard = () => {
                           </div>
                         </td>
                         <td>
-                          <Button
-                            onClick={() => handleCancelBooking(booking.booking_id)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#D97575] hover:bg-[#D97575]/10"
-                          >
+                          <Button onClick={() => handleCancelBooking(booking.booking_id)} variant="ghost" size="sm" className="text-[#D97575] hover:bg-[#D97575]/10">
                             <XCircle className="w-4 h-4" />
                           </Button>
                         </td>
@@ -243,73 +274,34 @@ const AdminDashboard = () => {
           <TabsContent value="clients" className="space-y-4">
             <div className="relative mb-4">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#737373]" />
-              <Input
-                placeholder="Search clients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 h-12 rounded-xl"
-                data-testid="client-search-input"
-              />
+              <Input placeholder="Search clients..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-12 h-12 rounded-xl" />
             </div>
-
             <div className="card-base overflow-x-auto">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>Client</th>
-                    <th>Email</th>
-                    <th>Credits</th>
-                    <th>Profile</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Client</th><th>Email</th><th>Credits</th><th>Profile</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {filteredClients.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-[#737373]">
-                        No clients found
-                      </td>
-                    </tr>
+                    <tr><td colSpan={5} className="text-center py-8 text-[#737373]">No clients found</td></tr>
                   ) : (
                     filteredClients.map((client) => (
-                      <tr key={client.user_id} data-testid={`admin-client-${client.user_id}`}>
+                      <tr key={client.user_id}>
                         <td>
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-[#F5D5D5] flex items-center justify-center text-sm font-medium">
-                              {client.initials}
-                            </div>
+                            <div className="w-8 h-8 rounded-full bg-[#F5D5D5] flex items-center justify-center text-sm font-medium">{client.initials}</div>
                             <span className="font-medium">{client.name}</span>
                           </div>
                         </td>
                         <td className="text-[#737373]">{client.email}</td>
                         <td>
-                          <span className={`px-2 py-1 rounded-full text-sm ${
-                            client.has_unlimited
-                              ? "bg-[#8FB392]/20 text-[#5A8F5E]"
-                              : client.credits > 0
-                              ? "bg-[#F5D5D5] text-[#1A1A1A]"
-                              : "bg-[#D97575]/20 text-[#C25050]"
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-sm ${client.has_unlimited ? "bg-[#8FB392]/20 text-[#5A8F5E]" : client.credits > 0 ? "bg-[#F5D5D5] text-[#1A1A1A]" : "bg-[#D97575]/20 text-[#C25050]"}`}>
                             {client.has_unlimited ? "Unlimited" : `${client.credits} credits`}
                           </span>
                         </td>
+                        <td>{client.profile_completed ? <CheckCircle className="w-5 h-5 text-[#8FB392]" /> : <Clock className="w-5 h-5 text-[#E6C785]" />}</td>
                         <td>
-                          {client.profile_completed ? (
-                            <CheckCircle className="w-5 h-5 text-[#8FB392]" />
-                          ) : (
-                            <Clock className="w-5 h-5 text-[#E6C785]" />
-                          )}
-                        </td>
-                        <td>
-                          <Button
-                            onClick={() => {
-                              setSelectedClient(client);
-                              setShowClientDialog(true);
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#737373] hover:text-[#1A1A1A]"
-                          >
+                          <Button onClick={() => { setSelectedClient(client); setShowClientDialog(true); }} variant="ghost" size="sm" className="text-[#737373] hover:text-[#1A1A1A]">
                             <Eye className="w-4 h-4" />
                           </Button>
                         </td>
@@ -326,48 +318,27 @@ const AdminDashboard = () => {
             <div className="card-base overflow-x-auto">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>Client</th>
-                    <th>Package</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Client</th><th>Package</th><th>Amount</th><th>Method</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {transactions.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-[#737373]">
-                        No transactions found
-                      </td>
-                    </tr>
+                    <tr><td colSpan={6} className="text-center py-8 text-[#737373]">No transactions found</td></tr>
                   ) : (
                     transactions.map((txn) => (
-                      <tr key={txn.transaction_id} data-testid={`admin-transaction-${txn.transaction_id}`}>
+                      <tr key={txn.transaction_id}>
                         <td className="font-medium">{txn.user_name}</td>
                         <td className="capitalize">{txn.package_type}</td>
                         <td>${txn.amount}</td>
                         <td className="capitalize">{txn.payment_method}</td>
                         <td>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            txn.status === "confirmed"
-                              ? "bg-[#8FB392]/20 text-[#5A8F5E]"
-                              : "bg-[#E6C785]/20 text-[#B8963A]"
-                          }`}>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${txn.status === "confirmed" ? "bg-[#8FB392]/20 text-[#5A8F5E]" : "bg-[#E6C785]/20 text-[#B8963A]"}`}>
                             {txn.status}
                           </span>
                         </td>
                         <td>
                           {txn.status === "pending" && (
-                            <Button
-                              onClick={() => handleConfirmTransaction(txn.transaction_id)}
-                              size="sm"
-                              className="bg-[#8FB392] hover:bg-[#7AA37D] text-white"
-                              data-testid={`confirm-txn-${txn.transaction_id}`}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Confirm
+                            <Button onClick={() => handleConfirmTransaction(txn.transaction_id)} size="sm" className="bg-[#8FB392] hover:bg-[#7AA37D] text-white">
+                              <CheckCircle className="w-4 h-4 mr-1" />Confirm
                             </Button>
                           )}
                         </td>
@@ -379,146 +350,235 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Site Images Tab */}
+          {/* Images Tab */}
           <TabsContent value="images" className="space-y-6">
-            <div className="card-base">
-              <h3 className="text-xl font-semibold text-[#1A1A1A] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                Site Images
-              </h3>
-              <p className="text-[#737373] mb-6">
-                Update the images displayed on your website. Paste image URLs from any image hosting service.
-              </p>
-
-              {settings && (
-                <div className="space-y-6">
-                  {/* Hero Image */}
-                  <div className="grid md:grid-cols-2 gap-6 p-4 bg-[#FAFAFA] rounded-xl">
+            {settings && (
+              <div className="space-y-6">
+                {/* Hero Image */}
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>Hero Image</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <Label className="text-[#1A1A1A] font-medium mb-2 block">
-                        Hero Image (Homepage Main Photo)
-                      </Label>
-                      <Input
-                        value={settings.hero_image || ""}
-                        onChange={(e) => updateSetting("hero_image", e.target.value)}
-                        placeholder="https://example.com/your-image.jpg"
-                        className="h-12 rounded-xl"
-                        data-testid="hero-image-input"
-                      />
-                      <p className="text-sm text-[#737373] mt-2">
-                        This appears as the main image on the homepage
-                      </p>
+                      <Label className="mb-2 block">Homepage Main Photo</Label>
+                      <Input value={settings.hero_image || ""} onChange={(e) => updateSetting("hero_image", e.target.value)} placeholder="https://example.com/image.jpg" className="h-12 rounded-xl" />
                     </div>
-                    <div className="flex items-center justify-center bg-white rounded-xl p-4 border border-[#E5E5E5]">
+                    <div className="flex items-center justify-center bg-[#FAFAFA] rounded-xl p-4">
                       {settings.hero_image ? (
-                        <img
-                          src={settings.hero_image}
-                          alt="Hero preview"
-                          className="max-h-40 rounded-lg object-cover"
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/300x200?text=Invalid+URL"; }}
-                        />
+                        <img src={settings.hero_image} alt="Hero" className="max-h-32 rounded-lg object-cover" onError={(e) => { e.target.src = "https://via.placeholder.com/200x150?text=Invalid"; }} />
                       ) : (
-                        <div className="text-[#737373] text-center">
-                          <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No image set</p>
-                        </div>
+                        <div className="text-[#737373] text-center"><Image className="w-10 h-10 mx-auto mb-2 opacity-50" /><p>No image</p></div>
                       )}
                     </div>
-                  </div>
-
-                  {/* About Image */}
-                  <div className="grid md:grid-cols-2 gap-6 p-4 bg-[#FAFAFA] rounded-xl">
-                    <div>
-                      <Label className="text-[#1A1A1A] font-medium mb-2 block">
-                        About/Profile Image
-                      </Label>
-                      <Input
-                        value={settings.about_image || ""}
-                        onChange={(e) => updateSetting("about_image", e.target.value)}
-                        placeholder="https://example.com/about-image.jpg"
-                        className="h-12 rounded-xl"
-                        data-testid="about-image-input"
-                      />
-                      <p className="text-sm text-[#737373] mt-2">
-                        Secondary image for about section or trainer profile
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center bg-white rounded-xl p-4 border border-[#E5E5E5]">
-                      {settings.about_image ? (
-                        <img
-                          src={settings.about_image}
-                          alt="About preview"
-                          className="max-h-40 rounded-lg object-cover"
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/300x200?text=Invalid+URL"; }}
-                        />
-                      ) : (
-                        <div className="text-[#737373] text-center">
-                          <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No image set</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Site Title */}
-                  <div className="p-4 bg-[#FAFAFA] rounded-xl">
-                    <Label className="text-[#1A1A1A] font-medium mb-2 block">
-                      Site Title
-                    </Label>
-                    <Input
-                      value={settings.site_title || ""}
-                      onChange={(e) => updateSetting("site_title", e.target.value)}
-                      placeholder="Stephanie Anderson Personal Training"
-                      className="h-12 rounded-xl"
-                      data-testid="site-title-input"
-                    />
-                  </div>
-
-                  {/* Site Tagline */}
-                  <div className="p-4 bg-[#FAFAFA] rounded-xl">
-                    <Label className="text-[#1A1A1A] font-medium mb-2 block">
-                      Site Tagline
-                    </Label>
-                    <Input
-                      value={settings.site_tagline || ""}
-                      onChange={(e) => updateSetting("site_tagline", e.target.value)}
-                      placeholder="Personal Training & Small Group Fitness"
-                      className="h-12 rounded-xl"
-                      data-testid="site-tagline-input"
-                    />
-                  </div>
-
-                  {/* Save Button */}
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      onClick={handleSaveSettings}
-                      disabled={savingSettings}
-                      className="btn-primary"
-                      data-testid="save-settings-btn"
-                    >
-                      {savingSettings ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Tips */}
-            <div className="card-base bg-[#FDF2F2]">
-              <h4 className="font-semibold text-[#1A1A1A] mb-2">Tips for Images</h4>
-              <ul className="text-sm text-[#737373] space-y-1">
-                <li>• Use high-quality images (at least 800x600 pixels)</li>
-                <li>• Square or portrait images work best for the hero section</li>
-                <li>• You can upload images to Google Drive, Dropbox, or Imgur and paste the direct link</li>
-                <li>• For Google Drive: Right-click → Share → Copy link, then convert to direct link</li>
-              </ul>
-            </div>
+                {/* About Image */}
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>About Image</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <Label className="mb-2 block">Secondary/About Photo</Label>
+                      <Input value={settings.about_image || ""} onChange={(e) => updateSetting("about_image", e.target.value)} placeholder="https://example.com/about.jpg" className="h-12 rounded-xl" />
+                    </div>
+                    <div className="flex items-center justify-center bg-[#FAFAFA] rounded-xl p-4">
+                      {settings.about_image ? (
+                        <img src={settings.about_image} alt="About" className="max-h-32 rounded-lg object-cover" onError={(e) => { e.target.src = "https://via.placeholder.com/200x150?text=Invalid"; }} />
+                      ) : (
+                        <div className="text-[#737373] text-center"><Image className="w-10 h-10 mx-auto mb-2 opacity-50" /><p>No image</p></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gallery Images */}
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>Gallery Images</h3>
+                  <p className="text-[#737373] mb-4">Add multiple images to showcase on your website</p>
+                  
+                  <div className="flex gap-3 mb-4">
+                    <Input value={newGalleryImage} onChange={(e) => setNewGalleryImage(e.target.value)} placeholder="Paste image URL here..." className="h-12 rounded-xl flex-1" />
+                    <Button onClick={addGalleryImage} className="btn-primary h-12">
+                      <Plus className="w-4 h-4 mr-2" />Add
+                    </Button>
+                  </div>
+
+                  {settings.gallery_images && settings.gallery_images.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {settings.gallery_images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img src={img} alt={`Gallery ${index + 1}`} className="w-full h-32 object-cover rounded-xl" onError={(e) => { e.target.src = "https://via.placeholder.com/200x150?text=Invalid"; }} />
+                          <button onClick={() => removeGalleryImage(index)} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-[#FAFAFA] rounded-xl text-[#737373]">
+                      <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No gallery images yet. Add some above!</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={savingSettings} className="btn-primary">
+                    {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-2" />Save Images</>}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Session Times Tab */}
+          <TabsContent value="sessions" className="space-y-6">
+            {settings && settings.session_times && (
+              <div className="space-y-6">
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>Session Times</h3>
+                  <p className="text-[#737373] mb-6">Configure your available training session times</p>
+
+                  {/* Morning Session */}
+                  <div className="p-4 bg-[#FAFAFA] rounded-xl mb-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-[#1A1A1A]">Morning Session</h4>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="morning-enabled" className="text-sm text-[#737373]">Enabled</Label>
+                        <Switch id="morning-enabled" checked={settings.session_times.morning?.enabled !== false} onCheckedChange={(checked) => updateSessionTime("morning", "enabled", checked)} />
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="mb-2 block">Start Time</Label>
+                        <Input value={settings.session_times.morning?.start || "5:30 AM"} onChange={(e) => updateSessionTime("morning", "start", e.target.value)} placeholder="5:30 AM" className="h-12 rounded-xl" />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block">End Time</Label>
+                        <Input value={settings.session_times.morning?.end || "6:15 AM"} onChange={(e) => updateSessionTime("morning", "end", e.target.value)} placeholder="6:15 AM" className="h-12 rounded-xl" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Afternoon Session */}
+                  <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-[#1A1A1A]">Mid-Morning Session</h4>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="afternoon-enabled" className="text-sm text-[#737373]">Enabled</Label>
+                        <Switch id="afternoon-enabled" checked={settings.session_times.afternoon?.enabled !== false} onCheckedChange={(checked) => updateSessionTime("afternoon", "enabled", checked)} />
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="mb-2 block">Start Time</Label>
+                        <Input value={settings.session_times.afternoon?.start || "9:30 AM"} onChange={(e) => updateSessionTime("afternoon", "start", e.target.value)} placeholder="9:30 AM" className="h-12 rounded-xl" />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block">End Time</Label>
+                        <Input value={settings.session_times.afternoon?.end || "10:15 AM"} onChange={(e) => updateSessionTime("afternoon", "end", e.target.value)} placeholder="10:15 AM" className="h-12 rounded-xl" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={savingSettings} className="btn-primary">
+                    {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-2" />Save Session Times</>}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Theme Tab */}
+          <TabsContent value="theme" className="space-y-6">
+            {settings && settings.theme && (
+              <div className="space-y-6">
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>Color Theme</h3>
+                  <p className="text-[#737373] mb-6">Customize your website's color scheme</p>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Primary Color */}
+                    <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                      <Label className="mb-2 block font-medium">Primary Color (Brand)</Label>
+                      <div className="flex gap-3 items-center">
+                        <input type="color" value={settings.theme.primary_color || "#F5D5D5"} onChange={(e) => updateThemeColor("primary_color", e.target.value)} className="w-12 h-12 rounded-lg border-0 cursor-pointer" />
+                        <Input value={settings.theme.primary_color || "#F5D5D5"} onChange={(e) => updateThemeColor("primary_color", e.target.value)} className="h-12 rounded-xl flex-1" placeholder="#F5D5D5" />
+                      </div>
+                      <p className="text-sm text-[#737373] mt-2">Main brand color (buttons, accents)</p>
+                    </div>
+
+                    {/* Secondary Color */}
+                    <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                      <Label className="mb-2 block font-medium">Secondary Color</Label>
+                      <div className="flex gap-3 items-center">
+                        <input type="color" value={settings.theme.secondary_color || "#E8B4B4"} onChange={(e) => updateThemeColor("secondary_color", e.target.value)} className="w-12 h-12 rounded-lg border-0 cursor-pointer" />
+                        <Input value={settings.theme.secondary_color || "#E8B4B4"} onChange={(e) => updateThemeColor("secondary_color", e.target.value)} className="h-12 rounded-xl flex-1" placeholder="#E8B4B4" />
+                      </div>
+                      <p className="text-sm text-[#737373] mt-2">Hover states, secondary elements</p>
+                    </div>
+
+                    {/* Accent Color */}
+                    <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                      <Label className="mb-2 block font-medium">Accent Color (Text/Buttons)</Label>
+                      <div className="flex gap-3 items-center">
+                        <input type="color" value={settings.theme.accent_color || "#1A1A1A"} onChange={(e) => updateThemeColor("accent_color", e.target.value)} className="w-12 h-12 rounded-lg border-0 cursor-pointer" />
+                        <Input value={settings.theme.accent_color || "#1A1A1A"} onChange={(e) => updateThemeColor("accent_color", e.target.value)} className="h-12 rounded-xl flex-1" placeholder="#1A1A1A" />
+                      </div>
+                      <p className="text-sm text-[#737373] mt-2">Dark text and button backgrounds</p>
+                    </div>
+
+                    {/* Success Color */}
+                    <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                      <Label className="mb-2 block font-medium">Success Color</Label>
+                      <div className="flex gap-3 items-center">
+                        <input type="color" value={settings.theme.success_color || "#8FB392"} onChange={(e) => updateThemeColor("success_color", e.target.value)} className="w-12 h-12 rounded-lg border-0 cursor-pointer" />
+                        <Input value={settings.theme.success_color || "#8FB392"} onChange={(e) => updateThemeColor("success_color", e.target.value)} className="h-12 rounded-xl flex-1" placeholder="#8FB392" />
+                      </div>
+                      <p className="text-sm text-[#737373] mt-2">Available slots, confirmations</p>
+                    </div>
+                  </div>
+
+                  {/* Color Preview */}
+                  <div className="mt-6 p-4 bg-white rounded-xl border border-[#E5E5E5]">
+                    <h4 className="font-medium mb-4">Preview</h4>
+                    <div className="flex flex-wrap gap-4">
+                      <div className="h-12 px-6 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: settings.theme.accent_color }}>
+                        Primary Button
+                      </div>
+                      <div className="h-12 px-6 rounded-full flex items-center justify-center font-medium" style={{ backgroundColor: settings.theme.primary_color, color: settings.theme.accent_color }}>
+                        Secondary Button
+                      </div>
+                      <div className="h-12 px-6 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: settings.theme.success_color }}>
+                        Available
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Site Text */}
+                <div className="card-base">
+                  <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>Site Text</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="mb-2 block">Site Title</Label>
+                      <Input value={settings.site_title || ""} onChange={(e) => updateSetting("site_title", e.target.value)} placeholder="Stephanie Anderson Personal Training" className="h-12 rounded-xl" />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block">Site Tagline</Label>
+                      <Input value={settings.site_tagline || ""} onChange={(e) => updateSetting("site_tagline", e.target.value)} placeholder="Personal Training & Small Group Fitness" className="h-12 rounded-xl" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={savingSettings} className="btn-primary">
+                    {savingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-2" />Save Theme</>}
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
@@ -526,68 +586,28 @@ const AdminDashboard = () => {
         <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle style={{ fontFamily: 'Playfair Display, serif' }}>
-                Client Profile
-              </DialogTitle>
+              <DialogTitle style={{ fontFamily: 'Playfair Display, serif' }}>Client Profile</DialogTitle>
             </DialogHeader>
             {selectedClient && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-[#F5F5F5]">
-                  <div className="w-16 h-16 rounded-full bg-[#F5D5D5] flex items-center justify-center text-xl font-semibold">
-                    {selectedClient.initials}
-                  </div>
+                  <div className="w-16 h-16 rounded-full bg-[#F5D5D5] flex items-center justify-center text-xl font-semibold">{selectedClient.initials}</div>
                   <div>
                     <h3 className="text-lg font-semibold">{selectedClient.name}</h3>
                     <p className="text-[#737373]">{selectedClient.email}</p>
                   </div>
                 </div>
-
                 {selectedClient.profile ? (
                   <div className="space-y-3">
-                    {selectedClient.profile.phone && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Phone</p>
-                        <p className="font-medium">{selectedClient.profile.phone}</p>
-                      </div>
-                    )}
-                    {selectedClient.profile.age && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Age</p>
-                        <p className="font-medium">{selectedClient.profile.age}</p>
-                      </div>
-                    )}
-                    {selectedClient.profile.fitness_goals && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Fitness Goals</p>
-                        <p className="font-medium">{selectedClient.profile.fitness_goals}</p>
-                      </div>
-                    )}
-                    {selectedClient.profile.health_conditions && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Health Conditions</p>
-                        <p className="font-medium text-[#D97575]">{selectedClient.profile.health_conditions}</p>
-                      </div>
-                    )}
-                    {selectedClient.profile.previous_injuries && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Previous Injuries</p>
-                        <p className="font-medium text-[#E6C785]">{selectedClient.profile.previous_injuries}</p>
-                      </div>
-                    )}
-                    {selectedClient.profile.emergency_contact_name && (
-                      <div>
-                        <p className="text-sm text-[#737373]">Emergency Contact</p>
-                        <p className="font-medium">
-                          {selectedClient.profile.emergency_contact_name}
-                          {selectedClient.profile.emergency_contact_phone && ` - ${selectedClient.profile.emergency_contact_phone}`}
-                        </p>
-                      </div>
-                    )}
+                    {selectedClient.profile.phone && <div><p className="text-sm text-[#737373]">Phone</p><p className="font-medium">{selectedClient.profile.phone}</p></div>}
+                    {selectedClient.profile.age && <div><p className="text-sm text-[#737373]">Age</p><p className="font-medium">{selectedClient.profile.age}</p></div>}
+                    {selectedClient.profile.fitness_goals && <div><p className="text-sm text-[#737373]">Fitness Goals</p><p className="font-medium">{selectedClient.profile.fitness_goals}</p></div>}
+                    {selectedClient.profile.health_conditions && <div><p className="text-sm text-[#737373]">Health Conditions</p><p className="font-medium text-[#D97575]">{selectedClient.profile.health_conditions}</p></div>}
+                    {selectedClient.profile.previous_injuries && <div><p className="text-sm text-[#737373]">Previous Injuries</p><p className="font-medium text-[#E6C785]">{selectedClient.profile.previous_injuries}</p></div>}
+                    {selectedClient.profile.emergency_contact_name && <div><p className="text-sm text-[#737373]">Emergency Contact</p><p className="font-medium">{selectedClient.profile.emergency_contact_name} {selectedClient.profile.emergency_contact_phone && `- ${selectedClient.profile.emergency_contact_phone}`}</p></div>}
                   </div>
                 ) : (
-                  <p className="text-[#737373] text-center py-4">
-                    Profile not completed yet
-                  </p>
+                  <p className="text-[#737373] text-center py-4">Profile not completed yet</p>
                 )}
               </div>
             )}
