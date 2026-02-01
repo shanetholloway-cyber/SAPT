@@ -11,7 +11,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import ProfilePage from "@/pages/ProfilePage";
 import BookingsPage from "@/pages/BookingsPage";
-// CreditsPage will be loaded dynamically
+import CreditsPage from "@/pages/CreditsPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
