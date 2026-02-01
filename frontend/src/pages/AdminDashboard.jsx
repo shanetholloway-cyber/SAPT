@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -22,7 +23,10 @@ import {
   XCircle,
   Search,
   Eye,
-  DollarSign
+  DollarSign,
+  Image,
+  Save,
+  Loader2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -31,7 +35,9 @@ const AdminDashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [clients, setClients] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientDialog, setShowClientDialog] = useState(false);
@@ -39,14 +45,16 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bookingsRes, clientsRes, transactionsRes] = await Promise.all([
+        const [bookingsRes, clientsRes, transactionsRes, settingsRes] = await Promise.all([
           axios.get(`${API}/admin/bookings`),
           axios.get(`${API}/admin/clients`),
           axios.get(`${API}/admin/transactions`),
+          axios.get(`${API}/settings`),
         ]);
         setBookings(bookingsRes.data);
         setClients(clientsRes.data);
         setTransactions(transactionsRes.data);
+        setSettings(settingsRes.data);
       } catch (error) {
         toast.error("Failed to load admin data");
       } finally {
@@ -62,7 +70,6 @@ const AdminDashboard = () => {
       await axios.put(`${API}/admin/transactions/${transactionId}/confirm`);
       toast.success("Transaction confirmed and credits added");
       
-      // Refresh data
       const [transactionsRes, clientsRes] = await Promise.all([
         axios.get(`${API}/admin/transactions`),
         axios.get(`${API}/admin/clients`),
@@ -79,12 +86,27 @@ const AdminDashboard = () => {
       await axios.delete(`${API}/admin/bookings/${bookingId}`);
       toast.success("Booking cancelled");
       
-      // Refresh bookings
       const response = await axios.get(`${API}/admin/bookings`);
       setBookings(response.data);
     } catch (error) {
       toast.error("Failed to cancel booking");
     }
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await axios.put(`${API}/admin/settings`, settings);
+      toast.success("Site images updated! Changes will appear on the homepage.");
+    } catch (error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const updateSetting = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   const filteredClients = clients.filter(client =>
@@ -95,7 +117,6 @@ const AdminDashboard = () => {
   const pendingTransactions = transactions.filter(t => t.status === "pending");
   const todayBookings = bookings.filter(b => b.date === format(new Date(), "yyyy-MM-dd"));
 
-  // Stats
   const stats = [
     { label: "Total Clients", value: clients.length, icon: Users, color: "bg-[#F5D5D5]" },
     { label: "Today's Sessions", value: todayBookings.length, icon: Calendar, color: "bg-[#8FB392]/20" },
@@ -116,17 +137,15 @@ const AdminDashboard = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1A1A1A]" style={{ fontFamily: 'Playfair Display, serif' }}>
             Admin Dashboard
           </h1>
           <p className="text-[#737373] mt-2">
-            Manage bookings, clients, and credit purchases
+            Manage bookings, clients, payments, and site content
           </p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {stats.map((stat) => (
             <div key={stat.label} className="card-base" data-testid={`stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
@@ -143,30 +162,17 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="bookings" className="space-y-6">
           <TabsList className="bg-[#F5F5F5] p-1 rounded-xl">
-            <TabsTrigger 
-              value="bookings" 
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-bookings"
-            >
+            <TabsTrigger value="bookings" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-bookings">
               <Calendar className="w-4 h-4 mr-2" />
               Bookings
             </TabsTrigger>
-            <TabsTrigger 
-              value="clients" 
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-clients"
-            >
+            <TabsTrigger value="clients" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-clients">
               <Users className="w-4 h-4 mr-2" />
               Clients
             </TabsTrigger>
-            <TabsTrigger 
-              value="payments" 
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-payments"
-            >
+            <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-payments">
               <CreditCard className="w-4 h-4 mr-2" />
               Payments
               {pendingTransactions.length > 0 && (
@@ -174,6 +180,10 @@ const AdminDashboard = () => {
                   {pendingTransactions.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="images" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm" data-testid="tab-images">
+              <Image className="w-4 h-4 mr-2" />
+              Site Images
             </TabsTrigger>
           </TabsList>
 
@@ -366,6 +376,148 @@ const AdminDashboard = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </TabsContent>
+
+          {/* Site Images Tab */}
+          <TabsContent value="images" className="space-y-6">
+            <div className="card-base">
+              <h3 className="text-xl font-semibold text-[#1A1A1A] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                Site Images
+              </h3>
+              <p className="text-[#737373] mb-6">
+                Update the images displayed on your website. Paste image URLs from any image hosting service.
+              </p>
+
+              {settings && (
+                <div className="space-y-6">
+                  {/* Hero Image */}
+                  <div className="grid md:grid-cols-2 gap-6 p-4 bg-[#FAFAFA] rounded-xl">
+                    <div>
+                      <Label className="text-[#1A1A1A] font-medium mb-2 block">
+                        Hero Image (Homepage Main Photo)
+                      </Label>
+                      <Input
+                        value={settings.hero_image || ""}
+                        onChange={(e) => updateSetting("hero_image", e.target.value)}
+                        placeholder="https://example.com/your-image.jpg"
+                        className="h-12 rounded-xl"
+                        data-testid="hero-image-input"
+                      />
+                      <p className="text-sm text-[#737373] mt-2">
+                        This appears as the main image on the homepage
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center bg-white rounded-xl p-4 border border-[#E5E5E5]">
+                      {settings.hero_image ? (
+                        <img
+                          src={settings.hero_image}
+                          alt="Hero preview"
+                          className="max-h-40 rounded-lg object-cover"
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/300x200?text=Invalid+URL"; }}
+                        />
+                      ) : (
+                        <div className="text-[#737373] text-center">
+                          <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>No image set</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* About Image */}
+                  <div className="grid md:grid-cols-2 gap-6 p-4 bg-[#FAFAFA] rounded-xl">
+                    <div>
+                      <Label className="text-[#1A1A1A] font-medium mb-2 block">
+                        About/Profile Image
+                      </Label>
+                      <Input
+                        value={settings.about_image || ""}
+                        onChange={(e) => updateSetting("about_image", e.target.value)}
+                        placeholder="https://example.com/about-image.jpg"
+                        className="h-12 rounded-xl"
+                        data-testid="about-image-input"
+                      />
+                      <p className="text-sm text-[#737373] mt-2">
+                        Secondary image for about section or trainer profile
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center bg-white rounded-xl p-4 border border-[#E5E5E5]">
+                      {settings.about_image ? (
+                        <img
+                          src={settings.about_image}
+                          alt="About preview"
+                          className="max-h-40 rounded-lg object-cover"
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/300x200?text=Invalid+URL"; }}
+                        />
+                      ) : (
+                        <div className="text-[#737373] text-center">
+                          <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>No image set</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Site Title */}
+                  <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                    <Label className="text-[#1A1A1A] font-medium mb-2 block">
+                      Site Title
+                    </Label>
+                    <Input
+                      value={settings.site_title || ""}
+                      onChange={(e) => updateSetting("site_title", e.target.value)}
+                      placeholder="Stephanie Anderson Personal Training"
+                      className="h-12 rounded-xl"
+                      data-testid="site-title-input"
+                    />
+                  </div>
+
+                  {/* Site Tagline */}
+                  <div className="p-4 bg-[#FAFAFA] rounded-xl">
+                    <Label className="text-[#1A1A1A] font-medium mb-2 block">
+                      Site Tagline
+                    </Label>
+                    <Input
+                      value={settings.site_tagline || ""}
+                      onChange={(e) => updateSetting("site_tagline", e.target.value)}
+                      placeholder="Personal Training & Small Group Fitness"
+                      className="h-12 rounded-xl"
+                      data-testid="site-tagline-input"
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      onClick={handleSaveSettings}
+                      disabled={savingSettings}
+                      className="btn-primary"
+                      data-testid="save-settings-btn"
+                    >
+                      {savingSettings ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tips */}
+            <div className="card-base bg-[#FDF2F2]">
+              <h4 className="font-semibold text-[#1A1A1A] mb-2">Tips for Images</h4>
+              <ul className="text-sm text-[#737373] space-y-1">
+                <li>• Use high-quality images (at least 800x600 pixels)</li>
+                <li>• Square or portrait images work best for the hero section</li>
+                <li>• You can upload images to Google Drive, Dropbox, or Imgur and paste the direct link</li>
+                <li>• For Google Drive: Right-click → Share → Copy link, then convert to direct link</li>
+              </ul>
             </div>
           </TabsContent>
         </Tabs>
