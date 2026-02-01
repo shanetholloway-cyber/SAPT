@@ -406,7 +406,7 @@ async def purchase_credits(data: CreditPurchase, user: User = Depends(get_curren
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.credit_transactions.insert_one(transaction)
+    await db.credit_transactions.insert_one(dict(transaction))
     
     return {
         "transaction_id": transaction_id,
