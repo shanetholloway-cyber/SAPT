@@ -219,7 +219,7 @@ async def register(data: UserRegister, response: Response):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.users.insert_one(user_doc)
+    await db.users.insert_one(dict(user_doc))
     
     token = create_jwt_token(user_id)
     response.set_cookie(
