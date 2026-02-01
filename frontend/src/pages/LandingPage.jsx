@@ -5,11 +5,23 @@ import { API } from "@/App";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, CreditCard, CheckCircle, ArrowRight } from "lucide-react";
 
+const DEFAULT_SETTINGS = {
+  hero_image: "https://customer-assets.emergentagent.com/job_fitness-booking-9/artifacts/mdv3ltvt_1000026645.jpg",
+  site_title: "Stephanie Anderson Personal Training",
+  site_tagline: "Personal Training & Small Group Fitness"
+};
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    // Fetch site settings
+    axios.get(`${API}/settings`)
+      .then(res => setSettings({ ...DEFAULT_SETTINGS, ...res.data }))
+      .catch(() => {});
+
     // Check if user is already logged in
     const checkAuth = async () => {
       try {
