@@ -630,6 +630,52 @@ async def admin_make_user_admin(user_id: str, user: User = Depends(get_admin_use
 async def admin_cancel_booking(booking_id: str, user: User = Depends(get_admin_user)):
     return await cancel_booking(booking_id, user)
 
+# ==================== SITE SETTINGS ====================
+
+DEFAULT_SITE_SETTINGS = {
+    "hero_image": "https://customer-assets.emergentagent.com/job_fitness-booking-9/artifacts/mdv3ltvt_1000026645.jpg",
+    "about_image": "https://customer-assets.emergentagent.com/job_fitness-booking-9/artifacts/mdv3ltvt_1000026645.jpg",
+    "gallery_images": [],
+    "site_title": "Stephanie Anderson Personal Training",
+    "site_tagline": "Personal Training & Small Group Fitness"
+}
+
+@api_router.get("/settings")
+async def get_site_settings():
+    """Get site settings (public endpoint)"""
+    settings = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
+    if not settings:
+        return DEFAULT_SITE_SETTINGS
+    return settings
+
+@api_router.put("/admin/settings")
+async def update_site_settings(request: Request, user: User = Depends(get_admin_user)):
+    """Update site settings (admin only)"""
+    data = await request.json()
+    
+    # Get current settings or defaults
+    current = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
+    if not current:
+        current = dict(DEFAULT_SITE_SETTINGS)
+    
+    # Update with new values
+    allowed_fields = ["hero_image", "about_image", "gallery_images", "site_title", "site_tagline"]
+    for field in allowed_fields:
+        if field in data:
+            current[field] = data[field]
+    
+    current["type"] = "site"
+    current["updated_at"] = datetime.now(timezone.utc).isoformat()
+    current["updated_by"] = user.user_id
+    
+    await db.site_settings.update_one(
+        {"type": "site"},
+        {"$set": current},
+        upsert=True
+    )
+    
+    return {"message": "Settings updated successfully", "settings": current}
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/health")
