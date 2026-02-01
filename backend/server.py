@@ -490,7 +490,8 @@ async def create_booking(data: BookingCreate, user: User = Depends(get_current_u
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.bookings.insert_one(booking)
+    # Create a copy for insertion (MongoDB mutates the original)
+    await db.bookings.insert_one(dict(booking))
     
     # Deduct credit if not unlimited
     if not user.has_unlimited:
