@@ -644,6 +644,55 @@ async def admin_make_user_admin(user_id: str, user: User = Depends(get_admin_use
     )
     return {"message": "User is now an admin"}
 
+@api_router.put("/admin/users/{user_id}/profile")
+async def admin_update_user_profile(user_id: str, request: Request, user: User = Depends(get_admin_user)):
+    """Admin can update any user's profile"""
+    data = await request.json()
+    
+    # Find the user
+    target_user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update allowed fields
+    update_fields = {}
+    
+    # Basic info
+    if "name" in data:
+        update_fields["name"] = data["name"]
+        update_fields["initials"] = get_initials(data["name"])
+    if "email" in data:
+        update_fields["email"] = data["email"]
+    if "credits" in data:
+        update_fields["credits"] = int(data["credits"])
+    if "has_unlimited" in data:
+        update_fields["has_unlimited"] = bool(data["has_unlimited"])
+    
+    # Profile info
+    profile_fields = ["phone", "age", "fitness_goals", "health_conditions", "previous_injuries", "emergency_contact_name", "emergency_contact_phone"]
+    profile_update = target_user.get("profile", {}) or {}
+    
+    for field in profile_fields:
+        if field in data:
+            if field == "age" and data[field]:
+                profile_update[field] = int(data[field])
+            else:
+                profile_update[field] = data[field]
+    
+    if profile_update:
+        update_fields["profile"] = profile_update
+        update_fields["profile_completed"] = True
+    
+    if update_fields:
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": update_fields}
+        )
+    
+    # Get updated user
+    updated_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    return {"message": "Profile updated successfully", "user": updated_user}
+
 @api_router.delete("/admin/bookings/{booking_id}")
 async def admin_cancel_booking(booking_id: str, user: User = Depends(get_admin_user)):
     return await cancel_booking(booking_id, user)
