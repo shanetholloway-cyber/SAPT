@@ -444,27 +444,36 @@ MAX_BOOKINGS_PER_SLOT = 3
 @api_router.get("/bookings/slots/{date}")
 async def get_slots_for_date(date: str, user: User = Depends(get_current_user)):
     """Get available slots for a specific date"""
+    # Get session times from settings
+    settings = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
+    session_times = settings.get("session_times", DEFAULT_SITE_SETTINGS["session_times"]) if settings else DEFAULT_SITE_SETTINGS["session_times"]
+    
     # Get all bookings for this date
     bookings = await db.bookings.find({"date": date}, {"_id": 0}).to_list(100)
     
     morning_bookings = [b for b in bookings if b["time_slot"] == "morning"]
     afternoon_bookings = [b for b in bookings if b["time_slot"] == "afternoon"]
     
+    morning_config = session_times.get("morning", {"start": "5:30 AM", "end": "6:15 AM", "enabled": True})
+    afternoon_config = session_times.get("afternoon", {"start": "9:30 AM", "end": "10:15 AM", "enabled": True})
+    
     return {
         "date": date,
         "morning": {
-            "time_display": "5:30 AM - 6:15 AM",
+            "time_display": f"{morning_config['start']} - {morning_config['end']}",
             "bookings": morning_bookings,
             "available_spots": MAX_BOOKINGS_PER_SLOT - len(morning_bookings),
             "is_full": len(morning_bookings) >= MAX_BOOKINGS_PER_SLOT,
-            "user_booked": any(b["user_id"] == user.user_id for b in morning_bookings)
+            "user_booked": any(b["user_id"] == user.user_id for b in morning_bookings),
+            "enabled": morning_config.get("enabled", True)
         },
         "afternoon": {
-            "time_display": "9:30 AM - 10:15 AM",
+            "time_display": f"{afternoon_config['start']} - {afternoon_config['end']}",
             "bookings": afternoon_bookings,
             "available_spots": MAX_BOOKINGS_PER_SLOT - len(afternoon_bookings),
             "is_full": len(afternoon_bookings) >= MAX_BOOKINGS_PER_SLOT,
-            "user_booked": any(b["user_id"] == user.user_id for b in afternoon_bookings)
+            "user_booked": any(b["user_id"] == user.user_id for b in afternoon_bookings),
+            "enabled": afternoon_config.get("enabled", True)
         }
     }
 
