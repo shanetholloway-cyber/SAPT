@@ -64,7 +64,7 @@ const LandingPage = () => {
     {
       name: "Unlimited",
       price: "$50",
-      period: "/month",
+      period: "/week",
       features: ["Unlimited sessions", "Priority booking", "Best value"],
       popular: true,
     },

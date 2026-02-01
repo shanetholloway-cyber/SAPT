@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 const PACKAGES = [
   { id: "single", name: "Single Session", price: 30, credits: 1, description: "Perfect for trying us out", features: ["1 training session", "Valid for 30 days", "Book any slot"], popular: false },
   { id: "double", name: "Duo Pack", price: 40, credits: 2, description: "Save $20 with this bundle", features: ["2 training sessions", "Valid for 60 days", "Flexible booking"], popular: false },
-  { id: "unlimited", name: "Unlimited Monthly", price: 50, credits: 999, description: "Best value for regulars", features: ["Unlimited sessions", "Valid for 30 days", "Priority booking"], popular: true }
+  { id: "unlimited", name: "Unlimited Weekly", price: 50, credits: 999, description: "Best value for regulars", features: ["Unlimited sessions", "Valid for 7 days", "Priority booking"], popular: true }
 ];
 
 const BuyCredits = () => {
