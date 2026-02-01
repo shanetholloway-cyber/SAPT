@@ -313,7 +313,7 @@ async def process_google_session(session_id: str, response: Response):
             "profile": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
-        await db.users.insert_one(user_doc)
+        await db.users.insert_one(dict(user_doc))
     
     # Store session
     await db.user_sessions.delete_many({"user_id": user_doc["user_id"]})
