@@ -20,6 +20,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const PACKAGES = [
+  {
+    id: "single",
+    name: "Single Session",
+    price: 30,
+    credits: 1,
+    description: "Perfect for trying us out",
+    features: ["1 training session", "Valid for 30 days", "Book any slot"],
+    popular: false,
+  },
+  {
+    id: "double",
+    name: "Duo Pack",
+    price: 40,
+    credits: 2,
+    description: "Save $20 with this bundle",
+    features: ["2 training sessions", "Valid for 60 days", "Flexible booking"],
+    popular: false,
+  },
+  {
+    id: "unlimited",
+    name: "Unlimited Monthly",
+    price: 50,
+    credits: 999,
+    description: "Best value for regulars",
+    features: ["Unlimited sessions", "Valid for 30 days", "Priority booking"],
+    popular: true,
+  },
+];
+
 const CreditsPage = () => {
   const { user, setUser } = useAuth();
   const [transactions, setTransactions] = useState([]);
@@ -28,36 +58,6 @@ const CreditsPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [purchasing, setPurchasing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-  const packages = [
-    {
-      id: "single",
-      name: "Single Session",
-      price: 30,
-      credits: 1,
-      description: "Perfect for trying us out",
-      features: ["1 training session", "Valid for 30 days", "Book any slot"],
-      popular: false,
-    },
-    {
-      id: "double",
-      name: "Duo Pack",
-      price: 40,
-      credits: 2,
-      description: "Save $20 with this bundle",
-      features: ["2 training sessions", "Valid for 60 days", "Flexible booking"],
-      popular: false,
-    },
-    {
-      id: "unlimited",
-      name: "Unlimited Monthly",
-      price: 50,
-      credits: 999,
-      description: "Best value for regulars",
-      features: ["Unlimited sessions", "Valid for 30 days", "Priority booking"],
-      popular: true,
-    },
-  ];
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -74,6 +74,8 @@ const CreditsPage = () => {
     fetchTransactions();
   }, []);
 
+  const getPackageDetails = (id) => PACKAGES.find(p => p.id === id);
+
   const handlePurchase = async () => {
     if (!selectedPackage) return;
     
@@ -88,7 +90,6 @@ const CreditsPage = () => {
       setShowConfirmDialog(true);
       setSelectedPackage(null);
       
-      // Refresh transactions
       const txnResponse = await axios.get(`${API}/credits/transactions`);
       setTransactions(txnResponse.data);
     } catch (error) {
@@ -98,12 +99,11 @@ const CreditsPage = () => {
     }
   };
 
-  const getPackageDetails = (id) => packages.find(p => p.id === id);
+  const selectedPkg = selectedPackage ? getPackageDetails(selectedPackage) : null;
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1A1A1A]" style={{ fontFamily: 'Playfair Display, serif' }}>
             Buy Credits
@@ -113,7 +113,6 @@ const CreditsPage = () => {
           </p>
         </div>
 
-        {/* Current Balance */}
         <div className="card-base bg-gradient-to-r from-[#FDF2F2] to-white mb-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#F5D5D5] flex items-center justify-center">
@@ -128,9 +127,8 @@ const CreditsPage = () => {
           </div>
         </div>
 
-        {/* Packages */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {packages.map((pkg) => (
+          {PACKAGES.map((pkg) => (
             <div
               key={pkg.id}
               className={`card-base cursor-pointer transition-all ${
@@ -178,14 +176,13 @@ const CreditsPage = () => {
           ))}
         </div>
 
-        {/* Payment Method & Purchase */}
-        {selectedPackage && (
+        {selectedPackage && selectedPkg && (
           <div className="card-base mb-8 animate-fade-in">
             <h3 className="text-xl font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
               Payment Method
             </h3>
             <p className="text-[#737373] mb-6">
-              Select how you'll pay. Credits will be added once payment is confirmed by admin.
+              Select how you will pay. Credits will be added once payment is confirmed by admin.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -235,61 +232,62 @@ const CreditsPage = () => {
               {purchasing ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                `Request ${getPackageDetails(selectedPackage)?.name} - $${getPackageDetails(selectedPackage)?.price}`
+                `Request ${selectedPkg.name} - $${selectedPkg.price}`
               )}
             </Button>
           </div>
         )}
 
-        {/* Transaction History */}
         {transactions.length > 0 && (
           <div>
             <h3 className="text-xl font-semibold text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
               Purchase History
             </h3>
             <div className="space-y-3">
-              {transactions.map((txn) => (
-                <div
-                  key={txn.transaction_id}
-                  className="card-base flex items-center justify-between"
-                  data-testid={`transaction-${txn.transaction_id}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      txn.status === "confirmed" ? "bg-[#8FB392]/20" : "bg-[#E6C785]/20"
-                    }`}>
-                      {txn.status === "confirmed" ? (
-                        <CheckCircle className="w-5 h-5 text-[#5A8F5E]" />
-                      ) : (
-                        <Clock className="w-5 h-5 text-[#B8963A]" />
-                      )}
+              {transactions.map((txn) => {
+                const txnPkg = getPackageDetails(txn.package_type);
+                return (
+                  <div
+                    key={txn.transaction_id}
+                    className="card-base flex items-center justify-between"
+                    data-testid={`transaction-${txn.transaction_id}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        txn.status === "confirmed" ? "bg-[#8FB392]/20" : "bg-[#E6C785]/20"
+                      }`}>
+                        {txn.status === "confirmed" ? (
+                          <CheckCircle className="w-5 h-5 text-[#5A8F5E]" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-[#B8963A]" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-[#1A1A1A]">
+                          {txnPkg ? txnPkg.name : txn.package_type}
+                        </p>
+                        <p className="text-sm text-[#737373]">
+                          {new Date(txn.created_at).toLocaleDateString()} - {txn.payment_method}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-[#1A1A1A]">
-                        {getPackageDetails(txn.package_type)?.name || txn.package_type}
-                      </p>
-                      <p className="text-sm text-[#737373]">
-                        {new Date(txn.created_at).toLocaleDateString()} • {txn.payment_method}
-                      </p>
+                    <div className="text-right">
+                      <p className="font-semibold text-[#1A1A1A]">${txn.amount}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        txn.status === "confirmed"
+                          ? "bg-[#8FB392]/20 text-[#5A8F5E]"
+                          : "bg-[#E6C785]/20 text-[#B8963A]"
+                      }`}>
+                        {txn.status}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-[#1A1A1A]">${txn.amount}</p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      txn.status === "confirmed"
-                        ? "bg-[#8FB392]/20 text-[#5A8F5E]"
-                        : "bg-[#E6C785]/20 text-[#B8963A]"
-                    }`}>
-                      {txn.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Confirmation Dialog */}
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -297,15 +295,9 @@ const CreditsPage = () => {
                 Purchase Request Submitted!
               </DialogTitle>
               <DialogDescription className="text-center">
-                {paymentMethod === "cash" ? (
-                  <>
-                    Please bring cash to your next session. Stephanie will confirm your purchase and credits will be added to your account.
-                  </>
-                ) : (
-                  <>
-                    Please complete your bank transfer. Once confirmed, your credits will be added to your account.
-                  </>
-                )}
+                {paymentMethod === "cash" 
+                  ? "Please bring cash to your next session. Stephanie will confirm your purchase and credits will be added to your account."
+                  : "Please complete your bank transfer. Once confirmed, your credits will be added to your account."}
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center mt-4">
