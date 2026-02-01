@@ -1,0 +1,139 @@
+{
+  "brand_identity": {
+    "name": "Stephanie Anderson Personal Training",
+    "acronym": "SAPT",
+    "archetype": "Soft & Chic / Organic Wellness",
+    "tone": "Welcoming, Empowering, Personal, Clean, Feminine",
+    "theme_mode": "light"
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Playfair Display, serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight",
+      "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground uppercase tracking-widest"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "brand": {
+        "primary": "#F5D5D5",
+        "secondary": "#E8B4B4",
+        "tertiary": "#FDF2F2"
+      },
+      "neutral": {
+        "900": "#1A1A1A",
+        "800": "#2D2D2D",
+        "500": "#737373",
+        "200": "#E5E5E5",
+        "100": "#F5F5F5",
+        "50": "#FAFAFA",
+        "white": "#FFFFFF"
+      },
+      "semantic": {
+        "success": "#8FB392",
+        "warning": "#E6C785",
+        "error": "#D97575",
+        "info": "#8FA6B3"
+      }
+    },
+    "usage": {
+      "background": "bg-[#FAFAFA]",
+      "surface": "bg-white",
+      "text_primary": "text-[#1A1A1A]",
+      "text_secondary": "text-[#737373]",
+      "border": "border-[#E5E5E5]",
+      "primary_button_bg": "bg-[#1A1A1A]",
+      "primary_button_text": "text-white",
+      "secondary_button_bg": "bg-[#F5D5D5]",
+      "secondary_button_text": "text-[#1A1A1A]"
+    }
+  },
+  "visual_enhancers": {
+    "radius": {
+      "default": "rounded-xl",
+      "card": "rounded-2xl",
+      "button": "rounded-full"
+    },
+    "shadows": {
+      "card": "shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+      "hover": "shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+      "inner": "shadow-inner"
+    },
+    "gradients": {
+      "hero": "bg-gradient-to-b from-[#FDF2F2] to-[#FAFAFA]",
+      "card_hover": "bg-gradient-to-br from-white to-[#FDF2F2]"
+    },
+    "textures": {
+      "noise": "opacity-40 mix-blend-overlay"
+    }
+  },
+  "layout_strategies": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "section_spacing": "py-16 md:py-24",
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "calendar": "grid grid-cols-1 md:grid-cols-7 gap-4"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "h-12 px-8 rounded-full bg-[#1A1A1A] text-white font-medium hover:bg-[#2D2D2D] transition-all duration-300 shadow-sm hover:shadow-md active:scale-95",
+      "secondary": "h-12 px-8 rounded-full bg-[#F5D5D5] text-[#1A1A1A] font-medium hover:bg-[#E8B4B4] transition-all duration-300 active:scale-95",
+      "outline": "h-12 px-8 rounded-full border-2 border-[#1A1A1A] text-[#1A1A1A] font-medium hover:bg-[#1A1A1A] hover:text-white transition-all duration-300"
+    },
+    "cards": {
+      "base": "bg-white rounded-2xl border border-[#F5F5F5] shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300",
+      "booking_slot": "flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer"
+    },
+    "inputs": {
+      "base": "h-12 rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#F5D5D5] focus:border-[#F5D5D5] transition-all"
+    }
+  },
+  "image_urls": {
+    "hero": {
+      "url": "https://images.unsplash.com/photo-1621888352883-9adf794c6e4c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwYWVzdGhldGljJTIweW9nYSUyMG1hdCUyMGR1bWJiZWxscyUyMHBhc3RlbHxlbnwwfHx8fDE3Njk5Nzg4OTN8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Woman doing yoga on blue mat",
+      "category": "hero_background"
+    },
+    "aesthetic_filler": {
+      "url": "https://images.unsplash.com/photo-1691315909393-c5c91e22760f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHxmaXRuZXNzJTIwYWVzdGhldGljJTIweW9nYSUyMG1hdCUyMGR1bWJiZWxscyUyMHBhc3RlbHxlbnwwfHx8fDE3Njk5Nzg4OTN8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Woman holding ball on beach",
+      "category": "aesthetic_filler"
+    },
+    "trainer_placeholder": {
+      "url": "https://images.unsplash.com/photo-1758875569414-120ebc62ada3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBwZXJzb25hbCUyMHRyYWluZXIlMjBoZWxwaW5nJTIwY2xpZW50JTIwZ3ltfGVufDB8fHx8MTc2OTk3ODg3MXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Trainer helping client",
+      "category": "about_section"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use 'Playfair Display' for all Headings (h1-h3) to establish the brand voice.",
+    "Use 'Manrope' for all body text and UI elements for readability.",
+    "Primary Action Buttons must be Dark Charcoal (#1A1A1A) to contrast with the soft pink theme.",
+    "Use the 'Bento' grid layout for the Admin Dashboard to organize bookings and stats.",
+    "The Calendar component should use soft pastel backgrounds for events (e.g., bg-[#F5D5D5]/20) and rounded corners.",
+    "Ensure all interactive elements have a 'data-testid' attribute.",
+    "Do not use default Shadcn styling; override with the specified border radii (rounded-xl/2xl) and shadows.",
+    "For the 'Available' slot status, use the Sage Green (#8FB392) color for text/icon to indicate positivity.",
+    "For the 'Booked' slot status (initials), use a neutral gray background with dark text.",
+    "Implement a 'Credit Balance' card that is prominent on the user dashboard."
+  ],
+  "universal_guidelines": [
+    "Avoid generic centered layouts; use asymmetry where possible.",
+    "Use 2-3x more spacing (padding/margin) than standard to create a 'luxury' feel.",
+    "Never use pure black (#000000); use #1A1A1A.",
+    "Add micro-interactions to all buttons and cards (hover lift, scale, shadow increase).",
+    "Ensure mobile responsiveness is prioritized for the booking flow."
+  ]
+}
