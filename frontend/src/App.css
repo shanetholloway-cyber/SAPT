@@ -1,34 +1,134 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* SAPT Fitness Booking App Styles */
+
+/* Hero gradient background */
+.hero-gradient {
+    background: linear-gradient(to bottom, #FDF2F2, #FAFAFA);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
+/* Booking slot styles */
+.slot-available {
+    @apply border-[#8FB392] bg-[#8FB392]/10 hover:bg-[#8FB392]/20;
+}
+
+.slot-booked {
+    @apply border-[#E5E5E5] bg-[#F5F5F5];
+}
+
+.slot-user-booked {
+    @apply border-[#F5D5D5] bg-[#F5D5D5]/30;
+}
+
+.slot-full {
+    @apply border-[#D97575] bg-[#D97575]/10;
+}
+
+/* Navigation styles */
+.nav-link {
+    @apply text-[#737373] hover:text-[#1A1A1A] transition-colors duration-200 font-medium;
+}
+
+.nav-link-active {
+    @apply text-[#1A1A1A] border-b-2 border-[#1A1A1A];
+}
+
+/* Credit card styles */
+.credit-card {
+    @apply rounded-2xl p-6 transition-all duration-300 cursor-pointer;
+}
+
+.credit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+}
+
+.credit-card-selected {
+    @apply ring-2 ring-[#1A1A1A];
+}
+
+/* Calendar day styles */
+.calendar-day {
+    @apply rounded-xl p-2 transition-all duration-200 cursor-pointer;
+}
+
+.calendar-day:hover {
+    @apply bg-[#F5D5D5]/30;
+}
+
+.calendar-day-selected {
+    @apply bg-[#1A1A1A] text-white;
+}
+
+.calendar-day-today {
+    @apply ring-2 ring-[#F5D5D5];
+}
+
+/* Profile form styles */
+.form-section {
+    @apply space-y-4 p-6 bg-white rounded-2xl border border-[#F5F5F5];
+}
+
+.form-label {
+    @apply text-sm font-medium text-[#1A1A1A] mb-1.5 block;
+}
+
+/* Admin dashboard styles */
+.admin-stat-card {
+    @apply bg-white rounded-2xl p-6 border border-[#F5F5F5];
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.admin-table {
+    @apply w-full border-collapse;
+}
+
+.admin-table th {
+    @apply text-left p-4 border-b border-[#E5E5E5] font-semibold text-[#737373] text-sm uppercase tracking-wider;
+}
+
+.admin-table td {
+    @apply p-4 border-b border-[#F5F5F5];
+}
+
+.admin-table tr:hover td {
+    @apply bg-[#FAFAFA];
+}
+
+/* Status badges */
+.badge-pending {
+    @apply bg-[#E6C785]/20 text-[#B8963A] px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-confirmed {
+    @apply bg-[#8FB392]/20 text-[#5A8F5E] px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-cancelled {
+    @apply bg-[#D97575]/20 text-[#C25050] px-3 py-1 rounded-full text-sm font-medium;
+}
+
+/* Loading spinner */
+.spinner {
+    @apply animate-spin rounded-full h-8 w-8 border-4 border-[#F5D5D5] border-t-[#1A1A1A];
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .btn-primary, .btn-secondary {
+        @apply h-11 px-6 text-sm;
+    }
+    
+    .card-base {
+        @apply p-4;
     }
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Smooth page transitions */
+.page-transition {
+    animation: fadeIn 0.3s ease-out;
 }
 
-.App-link {
-    color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Logo styling */
+.logo-circle {
+    @apply w-12 h-12 rounded-full bg-[#F5D5D5] flex items-center justify-center font-bold text-[#1A1A1A];
+    font-family: 'Playfair Display', serif;
 }
