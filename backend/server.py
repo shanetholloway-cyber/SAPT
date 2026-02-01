@@ -700,8 +700,14 @@ async def update_site_settings(request: Request, user: User = Depends(get_admin_
     if not current:
         current = dict(DEFAULT_SITE_SETTINGS)
     
-    # Update with new values
-    allowed_fields = ["hero_image", "about_image", "gallery_images", "site_title", "site_tagline", "session_times", "theme"]
+    # Update with new values - allow all text fields
+    allowed_fields = [
+        "hero_image", "about_image", "gallery_images", "site_title", "site_tagline",
+        "hero_heading", "hero_subheading", "about_title", "about_text",
+        "feature_1_title", "feature_1_text", "feature_2_title", "feature_2_text",
+        "feature_3_title", "feature_3_text", "cta_title", "cta_text",
+        "session_times", "theme"
+    ]
     for field in allowed_fields:
         if field in data:
             current[field] = data[field]
