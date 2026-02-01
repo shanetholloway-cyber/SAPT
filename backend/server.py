@@ -637,7 +637,17 @@ DEFAULT_SITE_SETTINGS = {
     "about_image": "https://customer-assets.emergentagent.com/job_fitness-booking-9/artifacts/mdv3ltvt_1000026645.jpg",
     "gallery_images": [],
     "site_title": "Stephanie Anderson Personal Training",
-    "site_tagline": "Personal Training & Small Group Fitness"
+    "site_tagline": "Personal Training & Small Group Fitness",
+    "session_times": {
+        "morning": {"start": "5:30 AM", "end": "6:15 AM", "enabled": True},
+        "afternoon": {"start": "9:30 AM", "end": "10:15 AM", "enabled": True}
+    },
+    "theme": {
+        "primary_color": "#F5D5D5",
+        "secondary_color": "#E8B4B4",
+        "accent_color": "#1A1A1A",
+        "success_color": "#8FB392"
+    }
 }
 
 @api_router.get("/settings")
@@ -646,7 +656,9 @@ async def get_site_settings():
     settings = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
     if not settings:
         return DEFAULT_SITE_SETTINGS
-    return settings
+    # Merge with defaults for any missing fields
+    merged = {**DEFAULT_SITE_SETTINGS, **settings}
+    return merged
 
 @api_router.put("/admin/settings")
 async def update_site_settings(request: Request, user: User = Depends(get_admin_user)):
@@ -659,7 +671,7 @@ async def update_site_settings(request: Request, user: User = Depends(get_admin_
         current = dict(DEFAULT_SITE_SETTINGS)
     
     # Update with new values
-    allowed_fields = ["hero_image", "about_image", "gallery_images", "site_title", "site_tagline"]
+    allowed_fields = ["hero_image", "about_image", "gallery_images", "site_title", "site_tagline", "session_times", "theme"]
     for field in allowed_fields:
         if field in data:
             current[field] = data[field]
