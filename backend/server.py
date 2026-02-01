@@ -144,6 +144,15 @@ def get_time_display(time_slot: str) -> str:
         return "5:30 AM - 6:15 AM"
     return "9:30 AM - 10:15 AM"
 
+async def get_time_display_from_settings(time_slot: str) -> str:
+    """Get time display from database settings"""
+    settings = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
+    if settings and "session_times" in settings:
+        slot_config = settings["session_times"].get(time_slot, {})
+        if slot_config.get("start") and slot_config.get("end"):
+            return f"{slot_config['start']} - {slot_config['end']}"
+    return get_time_display(time_slot)
+
 async def get_current_user(request: Request) -> User:
     # Try cookie first, then Authorization header
     token = request.cookies.get("session_token")
