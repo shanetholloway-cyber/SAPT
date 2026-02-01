@@ -656,6 +656,18 @@ DEFAULT_SITE_SETTINGS = {
     "gallery_images": [],
     "site_title": "Stephanie Anderson Personal Training",
     "site_tagline": "Personal Training & Small Group Fitness",
+    "hero_heading": "Train with Stephanie Anderson",
+    "hero_subheading": "Experience personalized fitness training designed to help you achieve your goals. Book sessions easily and join our supportive fitness community.",
+    "about_title": "Why Train With Us",
+    "about_text": "Get the personalized attention you deserve with our boutique fitness experience.",
+    "feature_1_title": "Easy Booking",
+    "feature_1_text": "Book your sessions with just a few clicks. See availability in real-time.",
+    "feature_2_title": "Small Groups",
+    "feature_2_text": "Maximum 3 people per session for personalized attention and results.",
+    "feature_3_title": "Flexible Plans",
+    "feature_3_text": "Choose from single sessions, multi-packs, or unlimited weekly access.",
+    "cta_title": "Ready to Start Your Fitness Journey?",
+    "cta_text": "Join us today and experience the difference personalized training can make in your life.",
     "session_times": {
         "morning": {"start": "5:30 AM", "end": "6:15 AM", "enabled": True},
         "afternoon": {"start": "9:30 AM", "end": "10:15 AM", "enabled": True}
