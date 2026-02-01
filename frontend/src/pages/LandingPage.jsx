@@ -157,8 +157,8 @@ const LandingPage = () => {
             <div className="relative animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <img
-                  src="https://images.unsplash.com/photo-1621888352883-9adf794c6e4c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwYWVzdGhldGljJTIweW9nYSUyMG1hdCUyMGR1bWJiZWxscyUyMHBhc3RlbHxlbnwwfHx8fDE3Njk5Nzg4OTN8MA&ixlib=rb-4.1.0&q=85"
-                  alt="Fitness training"
+                  src="https://customer-assets.emergentagent.com/job_fitness-booking-9/artifacts/mdv3ltvt_1000026645.jpg"
+                  alt="Stephanie Anderson - Personal Trainer"
                   className="w-full h-[500px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A]/20 to-transparent" />
