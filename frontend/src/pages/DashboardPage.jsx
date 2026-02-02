@@ -181,6 +181,9 @@ const DashboardPage = () => {
     const userBooking = slotData.bookings.find(b => b.user_id === user.user_id);
     const isFull = slotData.is_full;
     const availableSpots = slotData.available_spots;
+    const waitlistCount = slotData.waitlist_count || 0;
+    const userOnWaitlist = slotData.user_on_waitlist;
+    const userWaitlistPosition = slotData.user_waitlist_position;
 
     return (
       <div
@@ -188,6 +191,8 @@ const DashboardPage = () => {
         className={`card-base p-6 ${
           isUserBooked
             ? "ring-2 ring-[#F5D5D5] bg-[#FDF2F2]"
+            : userOnWaitlist
+            ? "ring-2 ring-[#E6C785] bg-[#FFFDF5]"
             : isFull
             ? "bg-[#F5F5F5]"
             : "hover:shadow-lg"
@@ -245,9 +250,27 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Waitlist Info */}
+        {isFull && waitlistCount > 0 && (
+          <div className="mb-4 flex items-center gap-2 text-sm text-[#737373]">
+            <ListOrdered className="w-4 h-4" />
+            <span>{waitlistCount} {waitlistCount === 1 ? 'person' : 'people'} on waitlist</span>
+          </div>
+        )}
+
+        {/* User on Waitlist Indicator */}
+        {userOnWaitlist && (
+          <div className="mb-4 flex items-center gap-2 p-3 bg-[#E6C785]/20 rounded-xl">
+            <ListOrdered className="w-5 h-5 text-[#B8963A]" />
+            <span className="text-sm text-[#B8963A]">
+              You're #{userWaitlistPosition} on the waitlist
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
         {!isPastDate && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             {isUserBooked ? (
               <Button
                 onClick={() => handleCancelBooking(userBooking.booking_id)}
@@ -257,26 +280,56 @@ const DashboardPage = () => {
               >
                 Cancel My Booking
               </Button>
+            ) : userOnWaitlist ? (
+              <Button
+                onClick={() => handleLeaveWaitlist(slotKey)}
+                variant="outline"
+                className="w-full h-11 rounded-xl border-[#E6C785] text-[#B8963A] hover:bg-[#E6C785]/10"
+                data-testid={`leave-waitlist-${slotKey}`}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Leave Waitlist
+              </Button>
             ) : isFull ? (
               <Button
-                disabled
-                className="w-full h-11 rounded-xl bg-[#E5E5E5] text-[#737373] cursor-not-allowed"
+                onClick={() => handleJoinWaitlist(slotKey)}
+                disabled={joiningWaitlist === slotKey}
+                className="w-full h-11 rounded-xl bg-[#E6C785] hover:bg-[#D4B576] text-[#1A1A1A]"
+                data-testid={`join-waitlist-${slotKey}`}
               >
-                Session Full
-              </Button>
-            ) : (
-              <Button
-                onClick={() => handleBookSlot(slotKey)}
-                disabled={bookingSlot === slotKey}
-                className="w-full btn-primary"
-                data-testid={`book-slot-${slotKey}`}
-              >
-                {bookingSlot === slotKey ? (
+                {joiningWaitlist === slotKey ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  "Book This Session"
+                  <>
+                    <ListOrdered className="w-4 h-4 mr-2" />
+                    Join Waitlist
+                  </>
                 )}
               </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleBookSlot(slotKey)}
+                  disabled={bookingSlot === slotKey}
+                  className="flex-1 btn-primary"
+                  data-testid={`book-slot-${slotKey}`}
+                >
+                  {bookingSlot === slotKey ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Book Session"
+                  )}
+                </Button>
+                <Button
+                  onClick={() => openRecurringDialog(slotKey)}
+                  variant="outline"
+                  className="h-11 px-3 rounded-xl border-[#E5E5E5] hover:bg-[#F5F5F5]"
+                  title="Book recurring sessions"
+                  data-testid={`recurring-${slotKey}`}
+                >
+                  <Repeat className="w-4 h-4" />
+                </Button>
+              </div>
             )}
           </div>
         )}
