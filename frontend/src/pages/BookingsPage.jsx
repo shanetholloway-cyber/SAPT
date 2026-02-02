@@ -109,7 +109,7 @@ const BookingsPage = () => {
               No Bookings Yet
             </h3>
             <p className="text-[#737373] mb-6">
-              You haven't booked any sessions yet. Head to the dashboard to book your first session!
+              You have not booked any sessions yet. Head to the dashboard to book your first session!
             </p>
             <Button
               onClick={() => window.location.href = '/dashboard'}
