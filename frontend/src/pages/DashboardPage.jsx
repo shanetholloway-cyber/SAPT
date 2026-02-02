@@ -263,7 +263,7 @@ const DashboardPage = () => {
           <div className="mb-4 flex items-center gap-2 p-3 bg-[#E6C785]/20 rounded-xl">
             <ListOrdered className="w-5 h-5 text-[#B8963A]" />
             <span className="text-sm text-[#B8963A]">
-              You're #{userWaitlistPosition} on the waitlist
+              You are #{userWaitlistPosition} on the waitlist
             </span>
           </div>
         )}
