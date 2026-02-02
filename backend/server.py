@@ -1236,15 +1236,35 @@ async def create_booking_notification(user_id: str, booking_date: str, time_disp
     if notification_type == "confirmation":
         title = "Booking Confirmed! ✓"
         body = f"Your session on {booking_date} at {time_display} has been booked."
+        url = "/bookings"
+    elif notification_type == "recurring_confirmation":
+        title = "Recurring Sessions Booked! 🔄"
+        body = f"Your {booking_date} have been scheduled for {time_display}."
+        url = "/bookings"
     elif notification_type == "reminder_24h":
         title = "Session Tomorrow 📅"
         body = f"Reminder: You have a training session tomorrow at {time_display}."
+        url = "/bookings"
     elif notification_type == "reminder_1h":
         title = "Session in 1 Hour ⏰"
         body = f"Your training session starts in 1 hour at {time_display}. Get ready!"
+        url = "/bookings"
+    elif notification_type == "waitlist_promoted":
+        title = "You're In! 🎉"
+        body = f"A spot opened up! You've been moved from the waitlist to the session on {booking_date} at {time_display}."
+        url = "/bookings"
+    elif notification_type == "waitlist_no_credits":
+        title = "Spot Available - Credits Needed 💳"
+        body = f"A spot opened for {booking_date} at {time_display}, but you don't have credits. Purchase credits to book!"
+        url = "/credits"
+    elif notification_type == "waitlist_joined":
+        title = "Added to Waitlist 📋"
+        body = f"You're on the waitlist for {booking_date} at {time_display}. We'll notify you if a spot opens."
+        url = "/bookings"
     else:
         title = "SAPT Notification"
         body = f"Session: {booking_date} at {time_display}"
+        url = "/bookings"
     
     notification = {
         "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
@@ -1252,7 +1272,7 @@ async def create_booking_notification(user_id: str, booking_date: str, time_disp
         "title": title,
         "body": body,
         "icon": "/logo192.png",
-        "url": "/bookings",
+        "url": url,
         "type": notification_type,
         "read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
