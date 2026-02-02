@@ -437,6 +437,92 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Recurring Booking Dialog */}
+      <Dialog open={showRecurringDialog} onOpenChange={setShowRecurringDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <Repeat className="w-5 h-5" />
+              Book Recurring Sessions
+            </DialogTitle>
+            <DialogDescription>
+              Book the same {recurringSlot === "morning" ? "morning (5:30 AM)" : "mid-morning (9:30 AM)"} session 
+              every week starting {format(selectedDate, "MMMM d, yyyy")}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+              Number of weeks
+            </label>
+            <div className="flex items-center gap-4">
+              {[2, 4, 6, 8].map((weeks) => (
+                <button
+                  key={weeks}
+                  onClick={() => setRecurringWeeks(weeks)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    recurringWeeks === weeks
+                      ? "bg-[#F5D5D5] border-[#F5D5D5] text-[#1A1A1A]"
+                      : "border-[#E5E5E5] hover:border-[#F5D5D5] text-[#737373]"
+                  }`}
+                >
+                  {weeks} weeks
+                </button>
+              ))}
+            </div>
+            
+            <div className="mt-4 p-3 bg-[#F5F5F5] rounded-lg">
+              <p className="text-sm text-[#737373]">
+                This will book <strong>{recurringWeeks} sessions</strong> on:
+              </p>
+              <ul className="mt-2 text-sm text-[#737373] space-y-1">
+                {Array.from({ length: Math.min(recurringWeeks, 4) }, (_, i) => {
+                  const date = new Date(selectedDate);
+                  date.setDate(date.getDate() + (i * 7));
+                  return (
+                    <li key={i}>{format(date, "EEEE, MMM d")}</li>
+                  );
+                })}
+                {recurringWeeks > 4 && (
+                  <li className="text-[#A0A0A0]">...and {recurringWeeks - 4} more</li>
+                )}
+              </ul>
+            </div>
+            
+            {!user.has_unlimited && (
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <CreditCard className="w-4 h-4 text-[#737373]" />
+                <span className="text-[#737373]">
+                  Credits needed: up to {recurringWeeks} (you have {user.credits})
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRecurringDialog(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleBookSlot(recurringSlot, true, recurringWeeks)}
+              disabled={bookingSlot === recurringSlot}
+              className="btn-primary"
+            >
+              {bookingSlot === recurringSlot ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Repeat className="w-4 h-4 mr-2" />
+              )}
+              Book {recurringWeeks} Sessions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
