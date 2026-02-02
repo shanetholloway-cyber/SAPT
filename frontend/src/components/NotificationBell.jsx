@@ -160,21 +160,24 @@ const NotificationBell = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {!isSubscribed ? (
-          <div className="px-4 py-6 text-center">
-            <BellOff className="w-10 h-10 mx-auto mb-3 text-[#737373] opacity-50" />
-            <p className="text-sm text-[#737373] mb-3">Enable notifications to get booking confirmations and session reminders</p>
-            <Button onClick={handleSubscribe} disabled={loading} className="btn-secondary text-sm h-9">
-              <Bell className="w-4 h-4 mr-2" /> Enable Notifications
-            </Button>
+        {/* Enable push banner - show when not subscribed */}
+        {!isSubscribed && isSupported && (
+          <div className="px-3 py-2 bg-[#FFF9E6] border-b border-[#E5E5E5]">
+            <div className="flex items-center gap-2">
+              <BellOff className="w-4 h-4 text-[#B89500] flex-shrink-0" />
+              <p className="text-xs text-[#8A7000] flex-1">Enable push notifications for real-time alerts</p>
+              <Button onClick={handleSubscribe} disabled={loading} size="sm" className="text-xs h-7 px-2 bg-[#F5D5D5] hover:bg-[#E8B4B4] text-[#1A1A1A]">
+                Enable
+              </Button>
+            </div>
           </div>
-        ) : notifications.length === 0 ? (
+        )}
+        
+        {/* Notification list - show regardless of subscription status */}
+        {notifications.length === 0 ? (
           <div className="px-4 py-6 text-center">
             <Bell className="w-10 h-10 mx-auto mb-3 text-[#737373] opacity-50" />
             <p className="text-sm text-[#737373]">No notifications yet</p>
-            <Button onClick={sendTestNotification} variant="ghost" size="sm" className="mt-2 text-xs">
-              Send test notification
-            </Button>
           </div>
         ) : (
           <>
@@ -182,7 +185,7 @@ const NotificationBell = () => {
               {notifications.slice(0, 10).map((notif) => (
                 <DropdownMenuItem key={notif.notification_id} className="px-3 py-3 cursor-pointer" onClick={() => markAsRead(notif.notification_id)}>
                   <div className="flex gap-3 w-full">
-                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notif.read ? "bg-transparent" : "bg-[#F5D5D5]"}`} />
+                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notif.read ? "bg-transparent" : "bg-[#D97575]"}`} />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${notif.read ? "text-[#737373]" : "text-[#1A1A1A] font-medium"}`}>{notif.title}</p>
                       <p className="text-xs text-[#737373] truncate">{notif.body}</p>
@@ -199,9 +202,6 @@ const NotificationBell = () => {
             <div className="px-3 py-2 flex justify-between">
               <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs">
                 Mark all as read
-              </Button>
-              <Button variant="ghost" size="sm" onClick={sendTestNotification} className="text-xs text-[#737373]">
-                Test
               </Button>
             </div>
           </>
