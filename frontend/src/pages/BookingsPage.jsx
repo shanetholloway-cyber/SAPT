@@ -100,7 +100,7 @@ const BookingsPage = () => {
           </p>
         </div>
 
-        {bookings.length === 0 ? (
+        {bookings.length === 0 && waitlistEntries.length === 0 ? (
           <div className="card-base text-center py-16">
             <div className="w-16 h-16 rounded-full bg-[#F5D5D5]/50 flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-[#737373]" />
@@ -121,6 +121,54 @@ const BookingsPage = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* Waitlist Entries */}
+            {activeWaitlist.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-[#B8963A] mb-4 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  <ListOrdered className="w-5 h-5" />
+                  On Waitlist ({activeWaitlist.length})
+                </h2>
+                <div className="space-y-4">
+                  {activeWaitlist.map((entry) => (
+                    <div
+                      key={entry.waitlist_id}
+                      className="card-base border-2 border-[#E6C785] bg-[#FFFDF5] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      data-testid={`waitlist-entry-${entry.waitlist_id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-[#E6C785]/30 flex items-center justify-center">
+                          <ListOrdered className="w-7 h-7 text-[#B8963A]" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#1A1A1A]">
+                            {format(parseISO(entry.date), "EEEE, MMMM d")}
+                          </p>
+                          <div className="flex items-center gap-3 text-[#737373]">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {entry.time_slot === "morning" ? "5:30 AM - 6:15 AM" : "9:30 AM - 10:15 AM"}
+                            </span>
+                            <span className="px-2 py-0.5 bg-[#E6C785]/30 rounded-full text-xs font-medium text-[#B8963A]">
+                              #{entry.position} in line
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleLeaveWaitlist(entry.waitlist_id)}
+                        variant="outline"
+                        className="h-10 rounded-xl border-[#E6C785] text-[#B8963A] hover:bg-[#E6C785]/10"
+                        data-testid={`leave-waitlist-${entry.waitlist_id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Leave Waitlist
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Upcoming Bookings */}
             {upcomingBookings.length > 0 && (
               <div>
@@ -137,15 +185,31 @@ const BookingsPage = () => {
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-[#8FB392]/20 flex items-center justify-center">
-                          <Calendar className="w-7 h-7 text-[#5A8F5E]" />
+                          {booking.is_recurring ? (
+                            <Repeat className="w-7 h-7 text-[#5A8F5E]" />
+                          ) : (
+                            <Calendar className="w-7 h-7 text-[#5A8F5E]" />
+                          )}
                         </div>
                         <div>
                           <p className="font-semibold text-[#1A1A1A]">
                             {format(parseISO(booking.date), "EEEE, MMMM d")}
                           </p>
-                          <div className="flex items-center gap-2 text-[#737373]">
-                            <Clock className="w-4 h-4" />
-                            <span>{booking.time_display}</span>
+                          <div className="flex items-center gap-3 text-[#737373]">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {booking.time_display}
+                            </span>
+                            {booking.is_recurring && (
+                              <span className="px-2 py-0.5 bg-[#8FB392]/20 rounded-full text-xs font-medium text-[#5A8F5E]">
+                                Recurring
+                              </span>
+                            )}
+                            {booking.from_waitlist && (
+                              <span className="px-2 py-0.5 bg-[#E6C785]/30 rounded-full text-xs font-medium text-[#B8963A]">
+                                From Waitlist
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
