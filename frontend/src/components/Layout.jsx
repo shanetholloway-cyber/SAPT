@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Calendar, CreditCard, User, LogOut, LayoutDashboard, Settings, Menu, X } from "lucide-react";
 import { useState } from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 export const Layout = ({ children }) => {
   const { user } = useAuth();
