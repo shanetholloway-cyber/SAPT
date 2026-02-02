@@ -78,7 +78,10 @@ export const Layout = ({ children }) => {
             </div>
 
             {/* User Menu */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {/* Credits Badge */}
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#F5D5D5] rounded-full">
                 <CreditCard className="w-4 h-4 text-[#1A1A1A]" />
