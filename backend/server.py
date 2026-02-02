@@ -468,11 +468,21 @@ async def get_slots_for_date(date: str, user: User = Depends(get_current_user)):
     # Get all bookings for this date
     bookings = await db.bookings.find({"date": date}, {"_id": 0}).to_list(100)
     
+    # Get waitlist entries for this date
+    waitlist = await db.waitlist.find({"date": date}, {"_id": 0}).to_list(100)
+    
     morning_bookings = [b for b in bookings if b["time_slot"] == "morning"]
     afternoon_bookings = [b for b in bookings if b["time_slot"] == "afternoon"]
     
+    morning_waitlist = [w for w in waitlist if w["time_slot"] == "morning"]
+    afternoon_waitlist = [w for w in waitlist if w["time_slot"] == "afternoon"]
+    
     morning_config = session_times.get("morning", {"start": "5:30 AM", "end": "6:15 AM", "enabled": True})
     afternoon_config = session_times.get("afternoon", {"start": "9:30 AM", "end": "10:15 AM", "enabled": True})
+    
+    # Check if user is on waitlist
+    user_morning_waitlist = next((w for w in morning_waitlist if w["user_id"] == user.user_id), None)
+    user_afternoon_waitlist = next((w for w in afternoon_waitlist if w["user_id"] == user.user_id), None)
     
     return {
         "date": date,
@@ -482,7 +492,10 @@ async def get_slots_for_date(date: str, user: User = Depends(get_current_user)):
             "available_spots": MAX_BOOKINGS_PER_SLOT - len(morning_bookings),
             "is_full": len(morning_bookings) >= MAX_BOOKINGS_PER_SLOT,
             "user_booked": any(b["user_id"] == user.user_id for b in morning_bookings),
-            "enabled": morning_config.get("enabled", True)
+            "enabled": morning_config.get("enabled", True),
+            "waitlist_count": len(morning_waitlist),
+            "user_on_waitlist": user_morning_waitlist is not None,
+            "user_waitlist_position": user_morning_waitlist["position"] if user_morning_waitlist else None
         },
         "afternoon": {
             "time_display": f"{afternoon_config['start']} - {afternoon_config['end']}",
@@ -490,7 +503,10 @@ async def get_slots_for_date(date: str, user: User = Depends(get_current_user)):
             "available_spots": MAX_BOOKINGS_PER_SLOT - len(afternoon_bookings),
             "is_full": len(afternoon_bookings) >= MAX_BOOKINGS_PER_SLOT,
             "user_booked": any(b["user_id"] == user.user_id for b in afternoon_bookings),
-            "enabled": afternoon_config.get("enabled", True)
+            "enabled": afternoon_config.get("enabled", True),
+            "waitlist_count": len(afternoon_waitlist),
+            "user_on_waitlist": user_afternoon_waitlist is not None,
+            "user_waitlist_position": user_afternoon_waitlist["position"] if user_afternoon_waitlist else None
         }
     }
 
