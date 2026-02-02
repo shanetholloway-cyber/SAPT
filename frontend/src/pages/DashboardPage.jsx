@@ -60,7 +60,7 @@ const DashboardPage = () => {
     fetchSlots();
   }, [selectedDate]);
 
-  const handleBookSlot = async (timeSlot) => {
+  const handleBookSlot = async (timeSlot, isRecurring = false, weeks = 1) => {
     // Check if user has credits
     if (!user.has_unlimited && user.credits <= 0) {
       toast.error("No credits available. Please purchase a session package.");
@@ -71,12 +71,22 @@ const DashboardPage = () => {
     setBookingSlot(timeSlot);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      await axios.post(`${API}/bookings`, {
+      const response = await axios.post(`${API}/bookings`, {
         date: dateStr,
         time_slot: timeSlot,
+        is_recurring: isRecurring,
+        recurring_weeks: weeks
       });
       
-      toast.success("Session booked successfully!");
+      if (isRecurring) {
+        const data = response.data;
+        toast.success(data.message || "Recurring sessions booked!");
+        if (data.waitlisted_dates?.length > 0) {
+          toast.info(`${data.waitlisted_dates.length} dates added to waitlist`);
+        }
+      } else {
+        toast.success("Session booked successfully!");
+      }
       
       // Refresh user credits
       const userResponse = await axios.get(`${API}/auth/me`);
@@ -85,12 +95,64 @@ const DashboardPage = () => {
       // Refresh slots
       const slotsResponse = await axios.get(`${API}/bookings/slots/${dateStr}`);
       setSlots(slotsResponse.data);
+      
+      setShowRecurringDialog(false);
     } catch (error) {
       const message = error.response?.data?.detail || "Failed to book session";
       toast.error(message);
     } finally {
       setBookingSlot(null);
     }
+  };
+
+  const handleJoinWaitlist = async (timeSlot) => {
+    setJoiningWaitlist(timeSlot);
+    try {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const response = await axios.post(`${API}/waitlist`, {
+        date: dateStr,
+        time_slot: timeSlot,
+      });
+      
+      toast.success(response.data.message || "Added to waitlist!");
+      
+      // Refresh slots
+      const slotsResponse = await axios.get(`${API}/bookings/slots/${dateStr}`);
+      setSlots(slotsResponse.data);
+    } catch (error) {
+      const message = error.response?.data?.detail || "Failed to join waitlist";
+      toast.error(message);
+    } finally {
+      setJoiningWaitlist(null);
+    }
+  };
+
+  const handleLeaveWaitlist = async (timeSlot) => {
+    try {
+      // Get waitlist entries for the user
+      const waitlistResponse = await axios.get(`${API}/waitlist/my`);
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const entry = waitlistResponse.data.find(
+        w => w.date === dateStr && w.time_slot === timeSlot
+      );
+      
+      if (entry) {
+        await axios.delete(`${API}/waitlist/${entry.waitlist_id}`);
+        toast.success("Removed from waitlist");
+        
+        // Refresh slots
+        const slotsResponse = await axios.get(`${API}/bookings/slots/${dateStr}`);
+        setSlots(slotsResponse.data);
+      }
+    } catch (error) {
+      const message = error.response?.data?.detail || "Failed to leave waitlist";
+      toast.error(message);
+    }
+  };
+
+  const openRecurringDialog = (timeSlot) => {
+    setRecurringSlot(timeSlot);
+    setShowRecurringDialog(true);
   };
 
   const handleCancelBooking = async (bookingId) => {
