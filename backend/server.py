@@ -1298,6 +1298,106 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== BACKGROUND REMINDER SCHEDULER ====================
+
+async def send_session_reminders():
+    """Check for upcoming sessions and send reminders"""
+    now = datetime.now(timezone.utc)
+    
+    # Get all bookings for upcoming sessions
+    # Check for sessions happening in the next 25 hours (for 24h reminder)
+    tomorrow = now + timedelta(hours=25)
+    tomorrow_str = tomorrow.strftime("%Y-%m-%d")
+    today_str = now.strftime("%Y-%m-%d")
+    
+    # Get all bookings for today and tomorrow that need reminders
+    bookings = await db.bookings.find({
+        "date": {"$in": [today_str, tomorrow_str]},
+        "$or": [
+            {"reminder_24h_sent": {"$ne": True}},
+            {"reminder_1h_sent": {"$ne": True}}
+        ]
+    }, {"_id": 0}).to_list(1000)
+    
+    # Get session times from settings
+    settings = await db.site_settings.find_one({"type": "site"}, {"_id": 0})
+    session_times = settings.get("session_times", DEFAULT_SITE_SETTINGS["session_times"]) if settings else DEFAULT_SITE_SETTINGS["session_times"]
+    
+    for booking in bookings:
+        try:
+            booking_date = datetime.strptime(booking["date"], "%Y-%m-%d")
+            
+            # Get session start time
+            time_slot = booking["time_slot"]
+            slot_config = session_times.get(time_slot, {})
+            start_time_str = slot_config.get("start", "5:30 AM" if time_slot == "morning" else "9:30 AM")
+            
+            # Parse time (handle AM/PM)
+            try:
+                start_time = datetime.strptime(start_time_str, "%I:%M %p").time()
+            except:
+                start_time = datetime.strptime("05:30", "%H:%M").time() if time_slot == "morning" else datetime.strptime("09:30", "%H:%M").time()
+            
+            session_datetime = datetime.combine(booking_date.date(), start_time)
+            session_datetime = session_datetime.replace(tzinfo=timezone.utc)
+            
+            time_until_session = session_datetime - now
+            hours_until = time_until_session.total_seconds() / 3600
+            
+            # Send 24-hour reminder (between 23-25 hours before)
+            if 23 <= hours_until <= 25 and not booking.get("reminder_24h_sent"):
+                formatted_date = booking_date.strftime("%A, %B %d")
+                await create_booking_notification(
+                    booking["user_id"],
+                    formatted_date,
+                    booking["time_display"],
+                    "reminder_24h"
+                )
+                await db.bookings.update_one(
+                    {"booking_id": booking["booking_id"]},
+                    {"$set": {"reminder_24h_sent": True}}
+                )
+                logger.info(f"Sent 24h reminder to {booking['user_name']} for {booking['date']} {time_slot}")
+            
+            # Send 1-hour reminder (between 0.5-1.5 hours before)
+            if 0.5 <= hours_until <= 1.5 and not booking.get("reminder_1h_sent"):
+                formatted_date = booking_date.strftime("%A, %B %d")
+                await create_booking_notification(
+                    booking["user_id"],
+                    formatted_date,
+                    booking["time_display"],
+                    "reminder_1h"
+                )
+                await db.bookings.update_one(
+                    {"booking_id": booking["booking_id"]},
+                    {"$set": {"reminder_1h_sent": True}}
+                )
+                logger.info(f"Sent 1h reminder to {booking['user_name']} for {booking['date']} {time_slot}")
+                
+        except Exception as e:
+            logger.error(f"Error sending reminder for booking {booking.get('booking_id')}: {e}")
+
+
+async def reminder_scheduler():
+    """Background task to check and send reminders every 15 minutes"""
+    while True:
+        try:
+            await send_session_reminders()
+        except Exception as e:
+            logger.error(f"Reminder scheduler error: {e}")
+        
+        # Wait 15 minutes before next check
+        await asyncio.sleep(900)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on app startup"""
+    # Start the reminder scheduler as a background task
+    asyncio.create_task(reminder_scheduler())
+    logger.info("Started reminder scheduler background task")
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
