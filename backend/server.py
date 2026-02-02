@@ -812,6 +812,91 @@ async def get_my_bookings(user: User = Depends(get_current_user)):
     ).sort("date", 1).to_list(100)
     return bookings
 
+
+# ==================== WAITLIST ROUTES ====================
+
+@api_router.post("/waitlist")
+async def join_waitlist(data: BookingCreate, user: User = Depends(get_current_user)):
+    """Join the waitlist for a full session"""
+    # Check if slot is actually full
+    existing_bookings = await db.bookings.find(
+        {"date": data.date, "time_slot": data.time_slot},
+        {"_id": 0}
+    ).to_list(10)
+    
+    if len(existing_bookings) < MAX_BOOKINGS_PER_SLOT:
+        raise HTTPException(status_code=400, detail="This slot is not full. You can book directly.")
+    
+    # Check if user already has a booking
+    if any(b["user_id"] == user.user_id for b in existing_bookings):
+        raise HTTPException(status_code=400, detail="You already have a booking for this slot")
+    
+    # Check if user is already on waitlist
+    existing_waitlist = await db.waitlist.find_one({
+        "date": data.date, 
+        "time_slot": data.time_slot,
+        "user_id": user.user_id
+    })
+    if existing_waitlist:
+        raise HTTPException(status_code=400, detail="You are already on the waitlist for this slot")
+    
+    entry = await add_to_waitlist(user, data.date, data.time_slot)
+    
+    return {
+        "waitlist_entry": entry,
+        "message": f"Added to waitlist. You are #{entry['position']} in line."
+    }
+
+
+@api_router.get("/waitlist/my")
+async def get_my_waitlist(user: User = Depends(get_current_user)):
+    """Get user's waitlist entries"""
+    entries = await db.waitlist.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    return entries
+
+
+@api_router.delete("/waitlist/{waitlist_id}")
+async def leave_waitlist(waitlist_id: str, user: User = Depends(get_current_user)):
+    """Remove self from waitlist"""
+    entry = await db.waitlist.find_one({"waitlist_id": waitlist_id}, {"_id": 0})
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+    
+    if entry["user_id"] != user.user_id and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.waitlist.delete_one({"waitlist_id": waitlist_id})
+    
+    # Reorder remaining waitlist
+    await reorder_waitlist(entry["date"], entry["time_slot"])
+    
+    return {"message": "Removed from waitlist"}
+
+
+@api_router.get("/waitlist/slot/{date}/{time_slot}")
+async def get_slot_waitlist(date: str, time_slot: str, user: User = Depends(get_current_user)):
+    """Get waitlist for a specific slot"""
+    entries = await db.waitlist.find(
+        {"date": date, "time_slot": time_slot},
+        {"_id": 0}
+    ).sort("position", 1).to_list(100)
+    
+    user_position = None
+    for entry in entries:
+        if entry["user_id"] == user.user_id:
+            user_position = entry["position"]
+            break
+    
+    return {
+        "waitlist": entries,
+        "total": len(entries),
+        "user_position": user_position
+    }
+
 # ==================== ADMIN ROUTES ====================
 
 @api_router.get("/admin/bookings")
