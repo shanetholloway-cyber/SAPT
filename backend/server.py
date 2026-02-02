@@ -506,13 +506,31 @@ async def create_booking(data: BookingCreate, user: User = Depends(get_current_u
         {"_id": 0}
     ).to_list(10)
     
-    if len(existing_bookings) >= MAX_BOOKINGS_PER_SLOT:
-        raise HTTPException(status_code=400, detail="This time slot is full")
-    
     # Check if user already booked this slot
     if any(b["user_id"] == user.user_id for b in existing_bookings):
         raise HTTPException(status_code=400, detail="You have already booked this slot")
     
+    # Check if user is already on waitlist
+    existing_waitlist = await db.waitlist.find_one({
+        "date": data.date, 
+        "time_slot": data.time_slot,
+        "user_id": user.user_id
+    })
+    if existing_waitlist:
+        raise HTTPException(status_code=400, detail="You are already on the waitlist for this slot")
+    
+    # If slot is full, return info about joining waitlist
+    if len(existing_bookings) >= MAX_BOOKINGS_PER_SLOT:
+        raise HTTPException(
+            status_code=400, 
+            detail="This time slot is full. You can join the waitlist instead."
+        )
+    
+    # Handle recurring bookings
+    if data.is_recurring and data.recurring_weeks > 0:
+        return await create_recurring_bookings(data, user)
+    
+    # Single booking
     booking_id = f"book_{uuid.uuid4().hex[:12]}"
     booking = {
         "booking_id": booking_id,
@@ -522,6 +540,10 @@ async def create_booking(data: BookingCreate, user: User = Depends(get_current_u
         "date": data.date,
         "time_slot": data.time_slot,
         "time_display": get_time_display(data.time_slot),
+        "is_recurring": False,
+        "recurring_group_id": None,
+        "reminder_24h_sent": False,
+        "reminder_1h_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -544,6 +566,92 @@ async def create_booking(data: BookingCreate, user: User = Depends(get_current_u
         logger.error(f"Failed to create notification: {e}")
     
     return {"booking": booking, "message": "Booking confirmed!"}
+
+
+async def create_recurring_bookings(data: BookingCreate, user: User):
+    """Create multiple bookings for recurring sessions"""
+    recurring_group_id = f"recur_{uuid.uuid4().hex[:12]}"
+    bookings_created = []
+    bookings_waitlisted = []
+    credits_needed = 0
+    
+    # Calculate all dates
+    base_date = datetime.strptime(data.date, "%Y-%m-%d")
+    dates_to_book = [base_date + timedelta(weeks=i) for i in range(data.recurring_weeks)]
+    
+    # Check credits needed (if not unlimited)
+    if not user.has_unlimited:
+        for book_date in dates_to_book:
+            date_str = book_date.strftime("%Y-%m-%d")
+            existing = await db.bookings.find({"date": date_str, "time_slot": data.time_slot}).to_list(10)
+            if len(existing) < MAX_BOOKINGS_PER_SLOT:
+                credits_needed += 1
+        
+        if user.credits < credits_needed:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Not enough credits. Need {credits_needed}, have {user.credits}."
+            )
+    
+    # Create bookings for each date
+    for book_date in dates_to_book:
+        date_str = book_date.strftime("%Y-%m-%d")
+        
+        # Check availability
+        existing_bookings = await db.bookings.find(
+            {"date": date_str, "time_slot": data.time_slot},
+            {"_id": 0}
+        ).to_list(10)
+        
+        # Skip if user already has booking on this date
+        if any(b["user_id"] == user.user_id for b in existing_bookings):
+            continue
+        
+        if len(existing_bookings) >= MAX_BOOKINGS_PER_SLOT:
+            # Add to waitlist instead
+            waitlist_entry = await add_to_waitlist(user, date_str, data.time_slot)
+            bookings_waitlisted.append(date_str)
+        else:
+            # Create booking
+            booking_id = f"book_{uuid.uuid4().hex[:12]}"
+            booking = {
+                "booking_id": booking_id,
+                "user_id": user.user_id,
+                "user_name": user.name,
+                "user_initials": user.initials,
+                "date": date_str,
+                "time_slot": data.time_slot,
+                "time_display": get_time_display(data.time_slot),
+                "is_recurring": True,
+                "recurring_group_id": recurring_group_id,
+                "reminder_24h_sent": False,
+                "reminder_1h_sent": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.bookings.insert_one(dict(booking))
+            bookings_created.append(booking)
+            
+            # Deduct credit if not unlimited
+            if not user.has_unlimited:
+                await db.users.update_one(
+                    {"user_id": user.user_id},
+                    {"$inc": {"credits": -1}}
+                )
+    
+    # Send notification for recurring bookings
+    if bookings_created:
+        await create_booking_notification(
+            user.user_id,
+            f"{len(bookings_created)} sessions",
+            f"Weekly {data.time_slot} sessions",
+            "recurring_confirmation"
+        )
+    
+    return {
+        "bookings": bookings_created,
+        "waitlisted_dates": bookings_waitlisted,
+        "message": f"Created {len(bookings_created)} bookings. {len(bookings_waitlisted)} dates added to waitlist."
+    }
 
 @api_router.delete("/bookings/{booking_id}")
 async def cancel_booking(booking_id: str, user: User = Depends(get_current_user)):
