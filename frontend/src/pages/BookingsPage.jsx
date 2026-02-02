@@ -9,19 +9,26 @@ import {
   Clock, 
   XCircle, 
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ListOrdered,
+  Repeat
 } from "lucide-react";
 import { format, isBefore, startOfDay, parseISO } from "date-fns";
 
 const BookingsPage = () => {
   const { user, setUser } = useAuth();
   const [bookings, setBookings] = useState([]);
+  const [waitlistEntries, setWaitlistEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get(`${API}/bookings/my`);
-      setBookings(response.data);
+      const [bookingsRes, waitlistRes] = await Promise.all([
+        axios.get(`${API}/bookings/my`),
+        axios.get(`${API}/waitlist/my`)
+      ]);
+      setBookings(bookingsRes.data);
+      setWaitlistEntries(waitlistRes.data);
     } catch (error) {
       toast.error("Failed to load bookings");
     } finally {
@@ -50,6 +57,17 @@ const BookingsPage = () => {
     }
   };
 
+  const handleLeaveWaitlist = async (waitlistId) => {
+    try {
+      await axios.delete(`${API}/waitlist/${waitlistId}`);
+      toast.success("Removed from waitlist");
+      fetchBookings();
+    } catch (error) {
+      const message = error.response?.data?.detail || "Failed to leave waitlist";
+      toast.error(message);
+    }
+  };
+
   const isPastBooking = (dateStr) => {
     const bookingDate = parseISO(dateStr);
     return isBefore(startOfDay(bookingDate), startOfDay(new Date()));
@@ -57,6 +75,7 @@ const BookingsPage = () => {
 
   const upcomingBookings = bookings.filter(b => !isPastBooking(b.date));
   const pastBookings = bookings.filter(b => isPastBooking(b.date));
+  const activeWaitlist = waitlistEntries.filter(w => !isPastBooking(w.date));
 
   if (loading) {
     return (
