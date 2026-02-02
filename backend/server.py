@@ -520,6 +520,14 @@ async def create_booking(data: BookingCreate, user: User = Depends(get_current_u
             {"$inc": {"credits": -1}}
         )
     
+    # Send booking confirmation notification
+    try:
+        from datetime import datetime as dt
+        formatted_date = dt.strptime(data.date, "%Y-%m-%d").strftime("%A, %B %d")
+        await create_booking_notification(user.user_id, formatted_date, booking["time_display"], "confirmation")
+    except Exception as e:
+        logger.error(f"Failed to create notification: {e}")
+    
     return {"booking": booking, "message": "Booking confirmed!"}
 
 @api_router.delete("/bookings/{booking_id}")
