@@ -678,7 +678,131 @@ async def cancel_booking(booking_id: str, user: User = Depends(get_current_user)
             {"$inc": {"credits": 1}}
         )
     
+    # Check waitlist and promote first person
+    await promote_from_waitlist(booking["date"], booking["time_slot"])
+    
     return {"message": "Booking cancelled and credit refunded"}
+
+
+async def add_to_waitlist(user: User, date: str, time_slot: str) -> dict:
+    """Add user to waitlist for a specific slot"""
+    # Get current waitlist count for position
+    waitlist_count = await db.waitlist.count_documents({
+        "date": date,
+        "time_slot": time_slot
+    })
+    
+    waitlist_id = f"wait_{uuid.uuid4().hex[:12]}"
+    entry = {
+        "waitlist_id": waitlist_id,
+        "user_id": user.user_id,
+        "user_name": user.name,
+        "user_initials": user.initials,
+        "date": date,
+        "time_slot": time_slot,
+        "position": waitlist_count + 1,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.waitlist.insert_one(dict(entry))
+    return entry
+
+
+async def promote_from_waitlist(date: str, time_slot: str):
+    """Promote first person from waitlist when a spot opens"""
+    # Get first person on waitlist
+    first_in_line = await db.waitlist.find_one(
+        {"date": date, "time_slot": time_slot},
+        {"_id": 0},
+        sort=[("position", 1)]
+    )
+    
+    if not first_in_line:
+        return None
+    
+    # Get user details
+    waitlist_user = await db.users.find_one(
+        {"user_id": first_in_line["user_id"]},
+        {"_id": 0}
+    )
+    
+    if not waitlist_user:
+        # User no longer exists, remove from waitlist and try next
+        await db.waitlist.delete_one({"waitlist_id": first_in_line["waitlist_id"]})
+        return await promote_from_waitlist(date, time_slot)
+    
+    # Check if user has credits
+    if not waitlist_user.get("has_unlimited") and waitlist_user.get("credits", 0) <= 0:
+        # User has no credits, notify them and skip
+        await create_booking_notification(
+            first_in_line["user_id"],
+            date,
+            get_time_display(time_slot),
+            "waitlist_no_credits"
+        )
+        await db.waitlist.delete_one({"waitlist_id": first_in_line["waitlist_id"]})
+        # Reorder remaining waitlist
+        await reorder_waitlist(date, time_slot)
+        return await promote_from_waitlist(date, time_slot)
+    
+    # Create booking for waitlisted user
+    booking_id = f"book_{uuid.uuid4().hex[:12]}"
+    booking = {
+        "booking_id": booking_id,
+        "user_id": first_in_line["user_id"],
+        "user_name": first_in_line["user_name"],
+        "user_initials": first_in_line["user_initials"],
+        "date": date,
+        "time_slot": time_slot,
+        "time_display": get_time_display(time_slot),
+        "is_recurring": False,
+        "recurring_group_id": None,
+        "from_waitlist": True,
+        "reminder_24h_sent": False,
+        "reminder_1h_sent": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.bookings.insert_one(dict(booking))
+    
+    # Deduct credit if not unlimited
+    if not waitlist_user.get("has_unlimited"):
+        await db.users.update_one(
+            {"user_id": first_in_line["user_id"]},
+            {"$inc": {"credits": -1}}
+        )
+    
+    # Remove from waitlist
+    await db.waitlist.delete_one({"waitlist_id": first_in_line["waitlist_id"]})
+    
+    # Reorder remaining waitlist
+    await reorder_waitlist(date, time_slot)
+    
+    # Send notification to promoted user
+    formatted_date = datetime.strptime(date, "%Y-%m-%d").strftime("%A, %B %d")
+    await create_booking_notification(
+        first_in_line["user_id"],
+        formatted_date,
+        get_time_display(time_slot),
+        "waitlist_promoted"
+    )
+    
+    logger.info(f"Promoted {first_in_line['user_name']} from waitlist for {date} {time_slot}")
+    return booking
+
+
+async def reorder_waitlist(date: str, time_slot: str):
+    """Reorder waitlist positions after someone is removed"""
+    waitlist_entries = await db.waitlist.find(
+        {"date": date, "time_slot": time_slot},
+        {"_id": 0}
+    ).sort("position", 1).to_list(100)
+    
+    for i, entry in enumerate(waitlist_entries):
+        await db.waitlist.update_one(
+            {"waitlist_id": entry["waitlist_id"]},
+            {"$set": {"position": i + 1}}
+        )
 
 @api_router.get("/bookings/my")
 async def get_my_bookings(user: User = Depends(get_current_user)):
