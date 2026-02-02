@@ -93,6 +93,8 @@ class CreditPurchase(BaseModel):
 class BookingCreate(BaseModel):
     date: str  # YYYY-MM-DD format
     time_slot: str  # "morning" or "afternoon"
+    is_recurring: bool = False  # For recurring bookings
+    recurring_weeks: int = 4  # How many weeks to repeat
 
 class Booking(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -103,6 +105,19 @@ class Booking(BaseModel):
     date: str
     time_slot: str
     time_display: str
+    is_recurring: bool = False
+    recurring_group_id: Optional[str] = None
+    created_at: datetime
+
+class WaitlistEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    waitlist_id: str
+    user_id: str
+    user_name: str
+    user_initials: str
+    date: str
+    time_slot: str
+    position: int
     created_at: datetime
 
 class CreditTransaction(BaseModel):
