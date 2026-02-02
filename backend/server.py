@@ -775,6 +775,152 @@ async def update_site_settings(request: Request, user: User = Depends(get_admin_
     
     return {"message": "Settings updated successfully", "settings": current}
 
+# ==================== PUSH NOTIFICATIONS ====================
+
+class PushSubscription(BaseModel):
+    subscription: Dict[str, Any]
+
+class NotificationPayload(BaseModel):
+    title: str
+    body: str
+    icon: Optional[str] = "/logo192.png"
+    tag: Optional[str] = "sapt-notification"
+    url: Optional[str] = "/dashboard"
+    
+@api_router.post("/notifications/subscribe")
+async def subscribe_to_notifications(data: PushSubscription, user: User = Depends(get_current_user)):
+    """Subscribe user to push notifications"""
+    subscription_data = {
+        "user_id": user.user_id,
+        "subscription": data.subscription,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "active": True
+    }
+    
+    # Update or insert subscription
+    await db.push_subscriptions.update_one(
+        {"user_id": user.user_id},
+        {"$set": subscription_data},
+        upsert=True
+    )
+    
+    return {"message": "Subscribed to notifications"}
+
+@api_router.post("/notifications/unsubscribe")
+async def unsubscribe_from_notifications(request: Request, user: User = Depends(get_current_user)):
+    """Unsubscribe user from push notifications"""
+    data = await request.json()
+    endpoint = data.get("endpoint")
+    
+    await db.push_subscriptions.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"active": False}}
+    )
+    
+    return {"message": "Unsubscribed from notifications"}
+
+@api_router.get("/notifications/status")
+async def get_notification_status(user: User = Depends(get_current_user)):
+    """Check if user is subscribed to notifications"""
+    subscription = await db.push_subscriptions.find_one(
+        {"user_id": user.user_id, "active": True},
+        {"_id": 0}
+    )
+    return {"subscribed": subscription is not None}
+
+@api_router.post("/notifications/test")
+async def send_test_notification(user: User = Depends(get_current_user)):
+    """Send a test notification to the current user"""
+    subscription = await db.push_subscriptions.find_one(
+        {"user_id": user.user_id, "active": True},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        raise HTTPException(status_code=400, detail="Not subscribed to notifications")
+    
+    # Store notification for client to poll
+    notification = {
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": user.user_id,
+        "title": "Test Notification",
+        "body": "Push notifications are working! 🎉",
+        "icon": "/logo192.png",
+        "url": "/dashboard",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.notifications.insert_one(dict(notification))
+    
+    return {"message": "Test notification sent", "notification": notification}
+
+@api_router.get("/notifications")
+async def get_notifications(user: User = Depends(get_current_user)):
+    """Get user's notifications"""
+    notifications = await db.notifications.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(50).to_list(50)
+    return notifications
+
+@api_router.get("/notifications/unread")
+async def get_unread_notifications(user: User = Depends(get_current_user)):
+    """Get user's unread notifications for polling"""
+    notifications = await db.notifications.find(
+        {"user_id": user.user_id, "read": False},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return notifications
+
+@api_router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, user: User = Depends(get_current_user)):
+    """Mark notification as read"""
+    await db.notifications.update_one(
+        {"notification_id": notification_id, "user_id": user.user_id},
+        {"$set": {"read": True}}
+    )
+    return {"message": "Notification marked as read"}
+
+@api_router.put("/notifications/read-all")
+async def mark_all_notifications_read(user: User = Depends(get_current_user)):
+    """Mark all notifications as read"""
+    await db.notifications.update_many(
+        {"user_id": user.user_id},
+        {"$set": {"read": True}}
+    )
+    return {"message": "All notifications marked as read"}
+
+async def create_booking_notification(user_id: str, booking_date: str, time_display: str, notification_type: str = "confirmation"):
+    """Create a notification for booking events"""
+    if notification_type == "confirmation":
+        title = "Booking Confirmed! ✓"
+        body = f"Your session on {booking_date} at {time_display} has been booked."
+    elif notification_type == "reminder_24h":
+        title = "Session Tomorrow 📅"
+        body = f"Reminder: You have a training session tomorrow at {time_display}."
+    elif notification_type == "reminder_1h":
+        title = "Session in 1 Hour ⏰"
+        body = f"Your training session starts in 1 hour at {time_display}. Get ready!"
+    else:
+        title = "SAPT Notification"
+        body = f"Session: {booking_date} at {time_display}"
+    
+    notification = {
+        "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
+        "user_id": user_id,
+        "title": title,
+        "body": body,
+        "icon": "/logo192.png",
+        "url": "/bookings",
+        "type": notification_type,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.notifications.insert_one(dict(notification))
+    return notification
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/health")
