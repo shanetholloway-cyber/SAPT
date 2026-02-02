@@ -36,6 +36,10 @@ const DashboardPage = () => {
   const [slots, setSlots] = useState(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingSlot, setBookingSlot] = useState(null);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(null);
+  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [recurringSlot, setRecurringSlot] = useState(null);
+  const [recurringWeeks, setRecurringWeeks] = useState(4);
 
   // Fetch slots when date changes
   useEffect(() => {
