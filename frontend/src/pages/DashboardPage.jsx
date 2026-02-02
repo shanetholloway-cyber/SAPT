@@ -14,9 +14,20 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  ListOrdered,
+  Repeat,
+  X
 } from "lucide-react";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const DashboardPage = () => {
   const { user, setUser } = useAuth();
